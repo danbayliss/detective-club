@@ -23,7 +23,7 @@ let currentRoom = null;
 let myName = '';
 let myId = null;
 
-// Confetti library
+// CONFETTI LIBRARY
 let confettiRunning = false;
 function runConfetti() {
   if (confettiRunning) return;
@@ -32,7 +32,7 @@ function runConfetti() {
   const animationEnd = Date.now() + duration;
   const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 1000 };
 
-  const interval = setInterval(function() {
+  const interval = setInterval(() => {
     const timeLeft = animationEnd - Date.now();
     if (timeLeft <= 0) return clearInterval(interval);
     const particleCount = 50 * (timeLeft / duration);
@@ -40,7 +40,7 @@ function runConfetti() {
   }, 250);
 }
 
-// On connect / reconnect
+// CONNECT / RECONNECT
 socket.on('connect', () => {
   myId = socket.id;
   const storedRoom = localStorage.getItem('currentRoom');
@@ -56,7 +56,7 @@ function savePlayerInfo() {
   localStorage.setItem('playerName', myName);
 }
 
-// Create / Join
+// CREATE / JOIN
 createBtn.onclick = () => {
   const name = nameInput.value.trim();
   if (!name) return alert('Enter name');
@@ -74,7 +74,7 @@ joinBtn.onclick = () => {
   savePlayerInfo();
 };
 
-// Exit room
+// EXIT
 const exitBtn = document.createElement('button');
 exitBtn.textContent = 'Exit Room';
 exitBtn.onclick = () => {
@@ -88,12 +88,12 @@ exitBtn.onclick = () => {
 };
 roomDiv.prepend(exitBtn);
 
-// Start game
+// START GAME
 startBtn.onclick = () => {
   socket.emit('startGame', { code: currentRoom });
 };
 
-// Submit word
+// SUBMIT WORD
 submitWordBtn.onclick = () => {
   const word = wordInput.value.trim();
   if (!word) return alert('Enter a word');
@@ -102,13 +102,13 @@ submitWordBtn.onclick = () => {
   wordInputPanel.style.display = 'none';
 };
 
-// Reveal word
+// REVEAL WORD
 revealWordBtn.onclick = () => {
   socket.emit('revealWord', { code: currentRoom });
   revealWordBtn.style.display = 'none';
 };
 
-// Voting
+// CREATE VOTE BUTTONS
 function createVoteButtons(state) {
   voteButtons.innerHTML = '';
   Object.entries(state.players).forEach(([id, p]) => {
@@ -123,25 +123,26 @@ function createVoteButtons(state) {
   });
 }
 
-// Update UI with phase transitions
+// UPDATE UI WITH ANIMATIONS
 socket.on('stateUpdate', state => {
   currentRoom = state.code || currentRoom;
   roomCodeSpan.textContent = currentRoom;
   lobby.style.display = 'none';
   roomDiv.style.display = 'block';
 
-  // Players
+  // PLAYERS
   playersList.innerHTML = '';
   Object.entries(state.players).forEach(([id, p]) => {
     const div = document.createElement('div');
     div.classList.add('player-card');
     if (id === myId) div.classList.add('self');
     if (id === state.currentActiveId) div.classList.add('active');
+    if (state.phase === 'voting' && id === state.blindId) div.classList.add('blind');
     div.textContent = p.name;
     playersList.appendChild(div);
   });
 
-  // Scores
+  // SCORE UPDATES (animated count)
   scoresList.innerHTML = '';
   Object.entries(state.scores).forEach(([id, score]) => {
     const div = document.createElement('div');
@@ -149,12 +150,14 @@ socket.on('stateUpdate', state => {
     scoresList.appendChild(div);
   });
 
-  // Phases
+  // PHASE TRANSITIONS
   wordInputPanel.style.display = 'none';
   revealWordBtn.style.display = 'none';
   votePanel.style.display = 'none';
   finalResults.style.display = 'none';
-  activePlayerPanel.style.display = 'block';
+  activePlayerPanel.classList.remove('show');
+
+  setTimeout(() => activePlayerPanel.classList.add('show'), 100);
 
   if (state.phase === 'wordEntry') {
     activePlayerPanel.textContent = `Active Player: ${state.players[state.currentActiveId].name}`;
@@ -183,12 +186,12 @@ socket.on('stateUpdate', state => {
   }
 });
 
-// Word revealed to blind
+// WORD REVEALED TO BLIND
 socket.on('wordRevealed', word => {
   activePlayerPanel.textContent += ` | Word revealed to blind player: ${word}`;
 });
 
-// Room joined / rejoined
+// ROOM JOINED / REJOINED
 socket.on('roomJoined', ({ code, state }) => {
   currentRoom = code;
   roomCodeSpan.textContent = code;
