@@ -1,188 +1,155 @@
 const socket = io();
-
 let currentRoom = localStorage.getItem('room') || null;
 let playerName = localStorage.getItem('name') || '';
 
 const lobby = document.getElementById('lobby');
 const roomDiv = document.getElementById('room');
-const nameInput = document.getElementById('nameInput');
-const roomInput = document.getElementById('roomCodeInput');
+const startGamePanel = document.getElementById('startGamePanel');
+const startBtn = document.getElementById('startBtn');
+const exitBtn = document.getElementById('exitBtn');
 const createBtn = document.getElementById('createBtn');
 const joinBtn = document.getElementById('joinBtn');
+const nameInput = document.getElementById('nameInput');
+const roomInput = document.getElementById('roomCodeInput');
 const joinError = document.getElementById('joinError');
 const roomCodeSpan = document.getElementById('roomCode');
 const playersList = document.getElementById('playersList');
 const scoresList = document.getElementById('scoresList');
-const startBtn = document.getElementById('startBtn');
-const exitBtn = document.getElementById('exitBtn');
 const activePlayerSpan = document.getElementById('activePlayer');
-const wordPanel = document.getElementById('wordInputPanel');
-const wordInput = document.getElementById('wordInput');
-const submitWordBtn = document.getElementById('submitWordBtn');
+const wordCard = document.getElementById('wordCard');
+const wordDisplay = document.getElementById('wordDisplay');
 const revealWordBtn = document.getElementById('revealWordBtn');
 const votePanel = document.getElementById('votePanel');
 const voteButtons = document.getElementById('voteButtons');
-const blindMessage = document.getElementById('blindMessage');
 const voteConfirm = document.getElementById('voteConfirm');
 const votedForSpan = document.getElementById('votedFor');
 const finalResults = document.getElementById('finalResults');
 
 // --- Lobby ---
-createBtn.addEventListener('click', () => {
-  const name = nameInput.value.trim();
-  if(!name) return alert('Enter name');
-  playerName = name;
-  localStorage.setItem('name', name);
-  socket.emit('createRoom', { name });
-});
-
-joinBtn.addEventListener('click', () => {
-  const name = nameInput.value.trim();
-  const code = roomInput.value.trim().toUpperCase();
-  if(!name || !code) return alert('Enter name + room code');
-  playerName = name;
-  localStorage.setItem('name', name);
-  localStorage.setItem('room', code);
-  socket.emit('joinRoom', { name, code });
-});
-
-exitBtn.addEventListener('click', () => {
-  if(currentRoom) socket.emit('exitRoom', { code: currentRoom });
+createBtn.onclick = ()=>{
+  const name=nameInput.value.trim(); if(!name) return alert('Enter name'); playerName=name; localStorage.setItem('name',name); socket.emit('createRoom',{name});
+};
+joinBtn.onclick = ()=>{
+  const name=nameInput.value.trim(); const code=roomInput.value.trim().toUpperCase(); if(!name||!code) return alert('Enter name+code'); playerName=name; localStorage.setItem('name',name); localStorage.setItem('room',code); socket.emit('joinRoom',{name,code});
+};
+exitBtn.onclick = ()=>{
+  if(currentRoom) socket.emit('exitRoom',{code:currentRoom});
   localStorage.removeItem('room');
   lobby.style.display='block';
   roomDiv.style.display='none';
-});
+};
 
 // Start game
-startBtn.addEventListener('click', ()=> {
-  if(currentRoom) socket.emit('startGame', { code: currentRoom });
-});
-
-// Submit word
-submitWordBtn.addEventListener('click', ()=>{
-  if(currentRoom && wordInput.value.trim()){
-    socket.emit('submitWord', { code: currentRoom, word: wordInput.value.trim() });
-    wordInput.value='';
-  }
-});
+startBtn.onclick = ()=>{ if(currentRoom) socket.emit('startGame',{code:currentRoom}); };
 
 // Reveal word
-revealWordBtn.addEventListener('click', ()=> {
-  if(currentRoom) socket.emit('revealWord', { code: currentRoom });
-});
+revealWordBtn.onclick = ()=>{ if(currentRoom) socket.emit('revealWord',{code:currentRoom}); };
 
 // Voting
-votePanel.addEventListener('click', e=>{
+votePanel.onclick = e=>{
   if(e.target.dataset.id && currentRoom){
-    socket.emit('vote', { code: currentRoom, targetId: e.target.dataset.id });
+    socket.emit('vote',{code:currentRoom,targetId:e.target.dataset.id});
   }
-});
+};
 
-// --- Socket events ---
-socket.on('joinError', msg => joinError.textContent = msg);
-
-socket.on('roomJoined', ({code, state})=>{
-  currentRoom = code;
-  localStorage.setItem('room', code);
+// --- Socket ---
+socket.on('joinError', msg=>joinError.textContent=msg);
+socket.on('roomJoined', ({code,state})=>{
+  currentRoom=code;
+  localStorage.setItem('room',code);
   lobby.style.display='none';
   roomDiv.style.display='block';
-  roomCodeSpan.textContent = code;
+  roomCodeSpan.textContent=code;
   renderRoom(state);
 });
-
 socket.on('stateUpdate', state=>{
-  currentRoom = state.code || currentRoom;
-  roomCodeSpan.textContent = state.code;
+  currentRoom=state.code||currentRoom;
+  roomCodeSpan.textContent=state.code;
   renderRoom(state);
 });
 
-// --- Rendering ---
+// --- Render ---
 function renderRoom(state){
-  const selfId = Object.keys(state.players).find(k=>state.players[k].name===playerName);
-  const activeId = state.order[state.currentActiveIndex];
+  const selfId=Object.keys(state.players).find(k=>state.players[k].name===playerName);
+  const activeId=state.order[state.currentActiveIndex];
 
-  // --- Players ---
+  // Players
   playersList.innerHTML='';
-  Object.entries(state.players).forEach(([id, player])=>{
+  Object.entries(state.players).forEach(([id,player])=>{
     const div=document.createElement('div');
-    div.textContent = player.name + (id===state.blindId && state.phase!=='finished'?' (Blind)':'');
+    div.textContent=player.name;
     if(id===selfId) div.classList.add('player-self');
     if(id===activeId) div.classList.add('player-active');
     playersList.appendChild(div);
   });
 
-  // --- Scores ---
+  // Scores
   scoresList.innerHTML='';
-  Object.entries(state.scores).forEach(([id, score])=>{
+  Object.entries(state.scores).forEach(([id,score])=>{
     const div=document.createElement('div');
-    div.textContent = `${state.players[id]?.name || id}: ${score} VP`;
+    div.textContent=`${state.players[id]?.name||id}: ${score} VP`;
     if(id===selfId) div.classList.add('player-self');
     scoresList.appendChild(div);
   });
 
-  // --- Start button ---
-  startBtn.style.display = (playerName===state.players[state.creatorId]?.name && state.phase==='lobby')?'block':'none';
+  // Start button panel
+  startGamePanel.style.display=(playerName===state.players[state.creatorId]?.name && state.phase==='lobby')?'flex':'none';
 
-  // --- Exit button hidden after start ---
-  exitBtn.style.display = (state.phase==='lobby')?'block':'none';
+  // Exit button
+  exitBtn.style.display=(state.phase==='lobby')?'block':'none';
 
-  // --- Active player display ---
-  activePlayerSpan.textContent = state.players[activeId]?.name || '';
+  // Active player
+  activePlayerSpan.textContent=state.players[activeId]?.name||'';
 
-  // --- Word panel ---
-  if(activeId===selfId && state.phase==='wordEntry'){
-    wordPanel.style.display='block';
-    revealWordBtn.style.display = 'block';
-    blindMessage.style.display='none';
-  } else if(state.blindId===selfId && state.phase==='wordEntry'){
-    wordPanel.style.display='none';
-    blindMessage.style.display='block';
-  } else {
-    wordPanel.style.display='none';
-    blindMessage.style.display='none';
-  }
+  // Word card
+  if(state.phase==='wordEntry'){
+    if(activeId===selfId){
+      wordCard.style.display='block';
+      wordDisplay.textContent=state.word || 'Enter your word';
+      revealWordBtn.style.display='block';
+    } else if(state.blindId===selfId){
+      wordCard.style.display='block';
+      wordDisplay.textContent='You are the blind player';
+      revealWordBtn.style.display='none';
+    } else {
+      wordCard.style.display='block';
+      wordDisplay.textContent=state.word || '';
+      revealWordBtn.style.display='none';
+    }
+  } else wordCard.style.display='none';
 
-  // --- Voting ---
+  // Voting
   if(state.phase==='voting'){
     votePanel.style.display='block';
     voteButtons.innerHTML='';
-    Object.entries(state.players).forEach(([id, player])=>{
-      if(id!==activeId){ // cannot vote active player
-        const btn = document.createElement('button');
-        btn.textContent = player.name;
+    Object.entries(state.players).forEach(([id,player])=>{
+      if(id!==activeId){
+        const btn=document.createElement('button');
+        btn.textContent=player.name;
         btn.dataset.id=id;
         voteButtons.appendChild(btn);
       }
     });
   } else votePanel.style.display='none';
 
-  // --- Vote confirm ---
+  // Vote confirm
   if(selfId in state.votes){
     voteConfirm.style.display='block';
-    votedForSpan.textContent = state.players[state.votes[selfId]]?.name || '';
+    votedForSpan.textContent=state.players[state.votes[selfId]]?.name||'';
   } else voteConfirm.style.display='none';
 
-  // --- Final results ---
+  // Final results
   if(state.phase==='finished'){
     finalResults.style.display='block';
     finalResults.innerHTML='<h2>Final Scores</h2>';
-    Object.entries(state.scores).forEach(([id, score])=>{
+    Object.entries(state.scores).forEach(([id,score])=>{
       const div=document.createElement('div');
-      div.textContent = `${state.players[id]?.name || id}: ${score} VP`;
+      div.textContent=`${state.players[id]?.name||id}: ${score} VP`;
       finalResults.appendChild(div);
     });
     confetti();
   } else finalResults.style.display='none';
 }
 
-// --- Confetti ---
+// Confetti
 function confetti(){
-  const duration = 5*1000;
-  const end = Date.now()+duration;
-  (function frame(){
-    confettiLib({particleCount:3, angle:60, spread:55, origin:{x:0}});
-    confettiLib({particleCount:3, angle:120, spread:55, origin:{x:1}});
-    if(Date.now()<end) requestAnimationFrame(frame);
-  })();
-}
-const confettiLib=window.confetti;
