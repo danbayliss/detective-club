@@ -52,17 +52,14 @@ document.addEventListener('DOMContentLoaded', () => {
     roomDiv.style.display = 'none';
   });
 
-  // Start game
   startBtn.addEventListener('click', () => {
     if (currentRoom) socket.emit('startGame', { code: currentRoom });
   });
 
-  // Reveal word
   revealWordBtn.addEventListener('click', () => {
     if (currentRoom) socket.emit('revealWord', { code: currentRoom });
   });
 
-  // Voting
   votePanel.addEventListener('click', e => {
     if (e.target.dataset.id && currentRoom) {
       socket.emit('vote', { code: currentRoom, targetId: e.target.dataset.id });
@@ -89,12 +86,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const selfId = Object.keys(state.players).find(k => state.players[k].name === playerName);
     const activeId = state.order[state.currentActiveIndex];
 
-    // --- Players (always show without revealing blind) ---
+    // --- Players ---
     playersList.innerHTML = '';
     Object.entries(state.players).forEach(([id, player]) => {
       const div = document.createElement('div');
       div.textContent = player.name;
-      if (id === selfId) div.classList.add('player-self');
+      if (id === selfId) div.classList.add('player-self', 'pop');
       if (id === activeId) div.classList.add('player-active');
       playersList.appendChild(div);
     });
@@ -104,39 +101,34 @@ document.addEventListener('DOMContentLoaded', () => {
     Object.entries(state.scores).forEach(([id, score]) => {
       const div = document.createElement('div');
       div.textContent = `${state.players[id]?.name || id}: ${score} VP`;
-      if (id === selfId) div.classList.add('player-self');
+      if (id === selfId) div.classList.add('player-self', 'pop');
       scoresList.appendChild(div);
     });
 
-    // --- Start button panel ---
     startGamePanel.style.display = (playerName === state.players[state.creatorId]?.name && state.phase === 'lobby') ? 'flex' : 'none';
-
-    // --- Exit button ---
     exitBtn.style.display = (state.phase === 'lobby') ? 'block' : 'none';
-
-    // --- Active player ---
     activePlayerSpan.textContent = state.players[activeId]?.name || '';
 
-    // --- Word card ---
+    // Word card
     if (state.phase === 'wordEntry') {
+      wordCard.style.display = 'block';
+      wordCard.classList.add('slide-in');
       if (activeId === selfId) {
-        wordCard.style.display = 'block';
         wordDisplay.textContent = state.word || 'Enter your word';
         revealWordBtn.style.display = 'block';
       } else if (state.blindId === selfId) {
-        wordCard.style.display = 'block';
         wordDisplay.textContent = 'You are the blind player';
         revealWordBtn.style.display = 'none';
       } else {
-        wordCard.style.display = 'block';
         wordDisplay.textContent = state.word || '';
         revealWordBtn.style.display = 'none';
       }
     } else wordCard.style.display = 'none';
 
-    // --- Voting ---
+    // Voting
     if (state.phase === 'voting') {
       votePanel.style.display = 'block';
+      votePanel.classList.add('slide-in');
       voteButtons.innerHTML = '';
       Object.entries(state.players).forEach(([id, player]) => {
         if (id !== activeId) {
@@ -148,15 +140,17 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     } else votePanel.style.display = 'none';
 
-    // --- Vote confirm ---
+    // Vote confirm
     if (selfId in state.votes) {
       voteConfirm.style.display = 'block';
+      voteConfirm.classList.add('slide-in');
       votedForSpan.textContent = state.players[state.votes[selfId]]?.name || '';
     } else voteConfirm.style.display = 'none';
 
-    // --- Final results ---
+    // Final results
     if (state.phase === 'finished') {
       finalResults.style.display = 'block';
+      finalResults.classList.add('fade-in');
       finalResults.innerHTML = '<h2>Final Scores</h2>';
       Object.entries(state.scores).forEach(([id, score]) => {
         const div = document.createElement('div');
@@ -167,7 +161,6 @@ document.addEventListener('DOMContentLoaded', () => {
     } else finalResults.style.display = 'none';
   }
 
-  // --- Confetti ---
   function confetti() {
     const duration = 5 * 1000;
     const end = Date.now() + duration;
@@ -178,4 +171,5 @@ document.addEventListener('DOMContentLoaded', () => {
     })();
   }
   const confettiLib = window.confetti;
+
 });
