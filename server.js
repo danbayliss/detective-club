@@ -1,10 +1,17 @@
 const express = require('express');
+const path = require('path');
 const app = express();
 const http = require('http').createServer(app);
 const io = require('socket.io')(http);
 const PORT = process.env.PORT || 3000;
 
+// Serve static files (CSS, JS)
 app.use(express.static(__dirname));
+
+// Serve index.html on root
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
 
 function generateRoomCode() {
   return Math.random().toString(36).substring(2, 7).toUpperCase();
@@ -60,3 +67,4 @@ io.on('connection', socket => {
 });
 
 http.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
