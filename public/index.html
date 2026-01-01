@@ -47,10 +47,10 @@
     </div>
 
     <div id="wordCard" class="panel slide-in" style="display:none;">
-      <!-- Active player enters word -->
       <input type="text" id="wordInput" placeholder="Enter your word" style="display:none;">
+      <button id="shareWordBtn" style="display:none;">Share Word</button>
       <p id="wordDisplay"></p>
-      <button id="revealWordBtn" style="display:none;">Reveal Word</button>
+      <button id="revealWordBtn" style="display:none;">Reveal Word to Blind Player</button>
     </div>
 
     <div id="votePanel" class="panel slide-in" style="display:none;">
@@ -61,15 +61,10 @@
     <div id="voteConfirm" class="panel slide-in" style="display:none;">
       <p>You voted for <span id="votedFor"></span></p>
     </div>
-
-    <div id="finalResults" class="panel fade-in" style="display:none;"></div>
   </div>
 </div>
 
-<canvas id="confetti"></canvas>
-
 <script src="/socket.io/socket.io.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
 <script src="main.js"></script>
 </body>
 </html>
