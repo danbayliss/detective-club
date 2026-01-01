@@ -9,6 +9,8 @@ const roomDiv = document.getElementById('room');
 const roomCodeSpan = document.getElementById('roomCode');
 const playersList = document.getElementById('playersList');
 const startBtn = document.getElementById('startBtn');
+const revealBtn = document.getElementById('revealBtn');
+const rolePanel = document.getElementById('rolePanel');
 
 let currentRoom = null;
 let myName = '';
@@ -48,7 +50,7 @@ joinBtn.onclick = () => {
   savePlayerInfo();
 };
 
-// Exit room button
+// Exit room
 const exitBtn = document.createElement('button');
 exitBtn.textContent = 'Exit Room';
 exitBtn.onclick = () => {
@@ -58,6 +60,7 @@ exitBtn.onclick = () => {
   currentRoom = null;
   localStorage.removeItem('currentRoom');
   localStorage.removeItem('playerName');
+  rolePanel.style.display = 'none';
 };
 roomDiv.prepend(exitBtn);
 
@@ -69,24 +72,28 @@ startBtn.onclick = () => {
 };
 
 // Reveal word (detective)
-function revealWord() {
+revealBtn.onclick = () => {
   socket.emit('revealWord', { code: currentRoom });
-}
+};
 
 // Role assignment
 socket.on('yourRole', ({ isDetective, isBlind, word }) => {
+  rolePanel.style.display = 'block';
   if (isDetective) {
-    alert('You are the Detective! Click reveal when ready.');
+    rolePanel.textContent = 'You are the Detective! Click "Reveal Word" when ready.';
+    revealBtn.style.display = 'inline-block';
   } else if (isBlind) {
-    alert('You are the blind player — you don’t know the word.');
+    rolePanel.textContent = 'You are the blind player — you don’t know the word.';
+    revealBtn.style.display = 'none';
   } else {
-    alert(`Your word is: ${word}`);
+    rolePanel.textContent = `Your word is: ${word}`;
+    revealBtn.style.display = 'none';
   }
 });
 
 // Word revealed
 socket.on('wordRevealed', (word) => {
-  alert(`The secret word is: ${word}`);
+  rolePanel.textContent = `The secret word is: ${word}`;
 });
 
 // Room joined / rejoined
@@ -110,7 +117,6 @@ socket.on('rejoined', (state) => {
 
 // Update player cards
 function updatePlayers(state) {
-  if (!currentRoom) currentRoom = Object.keys(state.players).includes(myId) ? currentRoom : null;
   playersList.innerHTML = '';
   Object.values(state.players).forEach(p => {
     const div = document.createElement('div');
