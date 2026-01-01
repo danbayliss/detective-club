@@ -37,11 +37,18 @@ button:hover {
   transform: scale(1.05);
 }
 
+#playersContainer {
+  margin-bottom: 20px;
+  min-height: 60px;
+  transition: min-height 0.3s;
+}
+
 .players-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
   gap: 10px;
   margin-top: 10px;
+  justify-items: center;
 }
 
 .player-card {
