@@ -85,6 +85,10 @@ socket.on('roomJoined', ({ code, state }) => {
   localStorage.setItem('room', code);
   lobby.style.display = 'none';
   roomDiv.style.display = 'block';
+  
+  // **Fix: Show the room code immediately**
+  roomCodeSpan.textContent = code;
+
   renderRoom(state);
 });
 
