@@ -59,20 +59,30 @@ button:hover {
   justify-content: space-between;
   align-items: center;
   padding: 10px 20px;
+  margin-bottom: 20px;
 }
 
-/* Panels */
-#startGamePanel, #wordCard, #votePanel, #newGamePanel {
-  background: #fff;
-  padding: 15px;
-  margin: 15px auto;
-  border-radius: 15px;
-  max-width: 400px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+/* Main Container: Players & Scores Columns */
+#mainContainer {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+#playersColumn, #scoresColumn {
+  flex: 1 1 200px;
+  max-width: 250px;
+}
+
+.panelTitle {
+  font-weight: bold;
   text-align: center;
+  margin-bottom: 10px;
 }
 
-/* Players List */
+/* Players & Scores List */
 #playersList div, #scoresList div {
   padding: 10px;
   margin: 5px 0;
@@ -80,43 +90,53 @@ button:hover {
   background: #fff;
   box-shadow: 0 2px 5px rgba(0,0,0,0.1);
   transition: transform 0.2s, background 0.2s;
+  text-align: center;
 }
 
-/* Highlight logged-in player */
 .player-self {
   background: #d4f0ff;
   border: 2px solid #4a90e2;
   font-weight: bold;
 }
 
-/* Highlight active player */
 .player-active {
   border: 2px dashed #ffb142;
 }
 
-/* Logged-in score highlight */
 .self-score {
   background: #d4f0ff;
   border: 2px solid #4a90e2;
   font-weight: bold;
 }
 
-/* Winner highlight */
 .winner {
   background: #ffeaa7;
   border: 2px solid #fdcb6e;
   font-weight: bold;
 }
 
-/* Voting & word display */
-#votePanel, #wordCard {
+/* Center Panel Cards */
+#centerPanel {
   display: flex;
   flex-direction: column;
   align-items: center;
+  width: 100%;
 }
 
+.panelCard {
+  background: #fff;
+  padding: 20px;
+  margin: 10px 0;
+  border-radius: 15px;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+  text-align: center;
+}
+
+/* Voting Buttons */
 #voteButtons button {
-  margin: 3px;
+  margin: 5px;
 }
 
 /* Hide Exit Room Button */
@@ -147,8 +167,14 @@ button:hover {
 
 /* Responsive */
 @media(max-width: 600px){
-  #playersList, #scoresContainer, #wordCard, #votePanel {
-    width: 90%;
-    margin: 10px auto;
+  #mainContainer {
+    flex-direction: column;
+    align-items: center;
+  }
+  #playersColumn, #scoresColumn {
+    max-width: 90%;
+  }
+  .panelCard {
+    width: 95%;
   }
 }
