@@ -21,6 +21,10 @@
 
   <!-- Room / Game -->
   <div id="room" style="display:none;">
+    <div id="startGamePanel" class="center-card">
+      <button id="startBtn">Start Game</button>
+    </div>
+
     <div class="header">
       <h2>Room: <span id="roomCode"></span></h2>
       <button id="exitBtn">Exit Room</button>
@@ -42,14 +46,9 @@
       <p>Active Player: <span id="activePlayer"></span></p>
     </div>
 
-    <div id="wordInputPanel" class="panel" style="display:none;">
-      <input type="text" id="wordInput" placeholder="Enter the word">
-      <button id="submitWordBtn">Submit Word</button>
+    <div id="wordCard" class="panel" style="display:none;">
+      <p id="wordDisplay"></p>
       <button id="revealWordBtn" style="display:none;">Reveal Word</button>
-    </div>
-
-    <div id="blindMessage" class="panel" style="display:none;">
-      <p>You are the blind player.</p>
     </div>
 
     <div id="votePanel" class="panel" style="display:none;">
@@ -62,8 +61,6 @@
     </div>
 
     <div id="finalResults" class="panel" style="display:none;"></div>
-
-    <button id="startBtn" style="display:none;">Start Game</button>
   </div>
 </div>
 
