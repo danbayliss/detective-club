@@ -1,67 +1,30 @@
-/*
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Detective Club</title>
-<link rel="stylesheet" href="style.css" />
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div id="app" class="card"></div>
-
-
+<h1>Detective Club</h1>
+<div id="game">
+  <div id="lobby">
+    <input type="text" id="nameInput" placeholder="Enter your name">
+    <button id="createBtn">Create Room</button>
+    <input type="text" id="roomCodeInput" placeholder="Room code">
+    <button id="joinBtn">Join Room</button>
+  </div>
+  <div id="room" style="display:none;">
+    <h2>Room Code: <span id="roomCode"></span></h2>
+    <div id="players"></div>
+    <button id="startBtn">Start Game</button>
+    <div id="clues" style="display:none;"></div>
+    <div id="votes" style="display:none;"></div>
+    <div id="results" style="display:none;"></div>
+  </div>
+</div>
 <script src="/socket.io/socket.io.js"></script>
-<script>
-const socket = io();
-let roomCode;
-
-
-function render(state) {
-const app = document.getElementById('app');
-app.innerHTML = `<h2>🕵️ Detective Club</h2><p>Round ${state.round}/${state.maxRounds}</p>`;
-
-
-if (state.phase === 'lobby') {
-app.innerHTML += `<button onclick="startGame()">Start Game</button>`;
-}
-
-
-if (state.phase === 'clues') {
-app.innerHTML += `<input id="clue" placeholder="Your clue" />
-<button onclick="submitClue()">Submit Clue</button>`;
-}
-
-
-if (state.phase === 'vote') {
-Object.entries(state.players).forEach(([id,p]) => {
-app.innerHTML += `<button onclick="vote('${id}')">${p.name}</button>`;
-});
-}
-
-
-if (state.phase === 'reveal') {
-app.innerHTML += `<h3>Voted Out: ${state.players[state.votedOut].name}</h3>`;
-app.innerHTML += `<button onclick="nextRound()">Next Round</button>`;
-}
-
-
-if (state.phase === 'end') {
-app.innerHTML += '<h3>🏆 Final Scores</h3>';
-Object.entries(state.scores).forEach(([id,score])=>{
-app.innerHTML += `<p>${state.players[id].name}: ${score}</p>`;
-});
-}
-}
-
-
-socket.on('stateUpdate', render);
-socket.on('roomJoined', ({ code, state }) => { roomCode = code; render(state); });
-socket.on('yourRole', ({ isDetective, word }) => alert(isDetective ? 'You are the DETECTIVE' : 'Your word: ' + word));
-
-
-function startGame(){
-socket.emit('startGame',{ code: roomCode, secretWord: prompt('Secret'), fakeWord: prompt('Fake') });
-}
-function submitClue(){ socket.emit('submitClue',{ code: roomCode, clue: clue.value }); }
-function vote(id){ socket.emit('vote',{ code: roomCode, targetId: id }); }
-function nextRound(){ socket.emit('nextRound',{ code: roomCode }); }
-</script>
+<script src="main.js"></script>
 </body>
 </html>
-*/
