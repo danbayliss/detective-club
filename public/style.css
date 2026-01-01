@@ -1,215 +1,25 @@
-/* --- Global --- */
-body {
-    margin: 0;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: #f0f2f5;
-    color: #333;
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
-    min-height: 100vh;
+/* Center title */
+#title {
+  text-align: center;
+  margin-top: 20px;
+  font-size: 2rem;
+  color: #222;
 }
 
-h1 {
-    text-align: center;
-    margin-top: 20px;
-    font-size: 2rem;
-    color: #222;
-    letter-spacing: 1px;
-}
-
-/* --- Lobby / Room --- */
-#lobby, #room {
-    width: 95%;
-    max-width: 900px;
-    margin-top: 20px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-/* Buttons */
-button {
-    cursor: pointer;
-    background-color: #4a90e2;
-    border: none;
-    padding: 10px 20px;
-    margin: 5px;
-    color: white;
-    font-weight: bold;
-    border-radius: 8px;
-    transition: transform 0.2s ease, background-color 0.2s ease;
-}
-
-button:hover {
-    transform: translateY(-2px);
-    background-color: #357abd;
-}
-
-button:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-}
-
-/* --- Room / Panels --- */
-#startGamePanel {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    margin: 10px 0;
-    padding: 15px 20px;
-    background: #fff;
-    border-radius: 12px;
-    box-shadow: 0 6px 15px rgba(0,0,0,0.1);
-    transition: all 0.3s ease;
-}
-
-#waitingMsg {
-    font-weight: bold;
-    margin-top: 10px;
-}
-
-/* --- Player List --- */
-#playersList {
-    width: 100%;
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: flex-start;
-    margin-bottom: 15px;
-}
-
-#playersList div {
-    padding: 8px 12px;
-    margin: 5px;
-    background: #fff;
-    border-radius: 10px;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-    transition: transform 0.3s ease, background-color 0.3s ease;
-}
-
+/* Highlight logged-in player */
 .player-self {
-    background: #d4f0ff;
-    font-weight: bold;
-}
-
-.player-active {
-    border: 2px solid #4a90e2;
-    animation: pulse 1.2s infinite;
-}
-
-@keyframes pulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.05); }
-    100% { transform: scale(1); }
-}
-
-/* --- Scores --- */
-#scoresContainer {
-    width: 100%;
-    background: #fff;
-    border-radius: 12px;
-    padding: 10px;
-    box-shadow: 0 6px 15px rgba(0,0,0,0.1);
-    margin-bottom: 15px;
-}
-
-#scoresList {
-    display: flex;
-    flex-wrap: wrap;
-}
-
-#scoresList div {
-    margin: 5px;
-    padding: 6px 12px;
-    background: #f7f9fc;
-    border-radius: 8px;
-    font-weight: bold;
-    transition: all 0.3s ease;
+  background: #d4f0ff;
+  font-weight: bold;
+  border: 2px solid #4a90e2;
 }
 
 .self-score {
-    background: #d4f0ff;
+  background: #d4f0ff;
+  font-weight: bold;
+  border: 2px solid #4a90e2;
 }
 
-.winner {
-    background: #ffe066;
-    border: 2px solid #ffb800;
-    transform: scale(1.1);
-}
-
-/* --- Word Card --- */
-#wordCard {
-    width: 100%;
-    background: #fff;
-    padding: 15px;
-    border-radius: 12px;
-    box-shadow: 0 6px 15px rgba(0,0,0,0.1);
-    margin-bottom: 20px;
-    display: none;
-    flex-direction: column;
-    align-items: center;
-    transition: all 0.3s ease;
-}
-
-#wordDisplay {
-    font-size: 1.2rem;
-    font-weight: bold;
-    margin-top: 10px;
-}
-
-/* --- Voting --- */
-#votePanel {
-    width: 100%;
-    background: #fff;
-    padding: 15px;
-    border-radius: 12px;
-    box-shadow: 0 6px 15px rgba(0,0,0,0.1);
-    display: none;
-    flex-direction: column;
-    align-items: center;
-    margin-bottom: 20px;
-    transition: all 0.3s ease;
-}
-
-#voteButtons button {
-    margin: 5px;
-    min-width: 100px;
-}
-
-/* --- Vote confirmation --- */
-#voteConfirm {
-    display: none;
-    font-weight: bold;
-    margin-top: 10px;
-}
-
-/* --- Confetti --- */
-#confettiCanvas {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-}
-
-/* --- Animations --- */
-.fadeIn {
-    animation: fadeIn 0.5s ease forwards;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px);}
-    to { opacity: 1; transform: translateY(0);}
-}
-
-/* --- Responsive --- */
-@media (max-width: 600px) {
-    #playersList, #scoresList {
-        flex-direction: column;
-        align-items: center;
-    }
-    #voteButtons button {
-        width: 80%;
-    }
+/* Hide Exit Room Button during active game */
+#exitBtn.hidden {
+  display: none;
 }
