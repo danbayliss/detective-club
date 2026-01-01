@@ -20,10 +20,10 @@ function createRoom(hostId) {
     players: {},
     detectiveId: null,
     secretWord: null,
-    fakeWord: null,
     clues: {},
     votes: {},
-    scores: {}
+    scores: {},
+    blindId: null
   };
   return code;
 }
@@ -55,18 +55,30 @@ io.on('connection', socket => {
     io.to(code).emit('stateUpdate', rooms[code]);
   });
 
-  socket.on('startGame', ({ code, secretWord, fakeWord }) => {
+  // Start game - only secret word needed
+  socket.on('startGame', ({ code, secretWord }) => {
     const room = rooms[code];
     if (!room) return;
 
     room.secretWord = secretWord;
-    room.fakeWord = fakeWord;
     nextRound(room);
 
-    Object.keys(room.players).forEach(id => {
+    const playerIds = Object.keys(room.players);
+    
+    // Pick a blind player randomly
+    const blindId = playerIds[Math.floor(Math.random() * playerIds.length)];
+    room.blindId = blindId;
+
+    playerIds.forEach(id => {
       const isDetective = id === room.detectiveId;
-      const word = isDetective ? null : (Math.random() < 0.5 ? secretWord : fakeWord);
-      io.to(id).emit('yourRole', { isDetective, word });
+      const isBlind = id === blindId;
+      const word = isBlind || isDetective ? null : secretWord;
+
+      io.to(id).emit('yourRole', {
+        isDetective,
+        isBlind,
+        word
+      });
     });
 
     io.to(code).emit('stateUpdate', room);
