@@ -1,17 +1,21 @@
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
+
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
+// Serve static files from public folder
 app.use(express.static('public'));
 
+// Rooms storage
 const rooms = {}; // roomCode -> state
 
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
 
+  // Create a room
   socket.on('createRoom', ({ name }) => {
     const roomCode = Math.random().toString(36).substring(2, 7).toUpperCase();
     rooms[roomCode] = {
@@ -31,9 +35,11 @@ io.on('connection', (socket) => {
     io.to(roomCode).emit('stateUpdate', rooms[roomCode]);
   });
 
+  // Join an existing room
   socket.on('joinRoom', ({ name, code }) => {
     const room = rooms[code];
     if (!room) return io.to(socket.id).emit('joinError', 'Room not found');
+
     // Prevent duplicate names
     if (Object.values(room.players).some(p => p.name === name)) {
       return io.to(socket.id).emit('joinError', 'Name already taken');
@@ -46,14 +52,16 @@ io.on('connection', (socket) => {
     io.to(code).emit('stateUpdate', room);
   });
 
+  // Start the game
   socket.on('startGame', ({ code }) => {
     const room = rooms[code];
     if (!room || room.phase !== 'lobby') return;
+
     room.phase = 'wordEntry';
     room.order = Object.keys(room.players);
     room.currentActiveIndex = 0;
 
-    // Pick a random blind player (not the first active)
+    // Random blind player (not first active)
     const blindCandidates = room.order.filter(id => id !== room.order[0]);
     room.blindId = blindCandidates[Math.floor(Math.random() * blindCandidates.length)];
     room.word = null;
@@ -61,7 +69,7 @@ io.on('connection', (socket) => {
     io.to(code).emit('stateUpdate', room);
   });
 
-  // New: Active player submits word
+  // Active player submits word
   socket.on('submitWord', ({ code, word }) => {
     const room = rooms[code];
     if (!room) return;
@@ -69,11 +77,11 @@ io.on('connection', (socket) => {
     if (socket.id !== activeId) return;
 
     room.word = word;
-    room.phase = 'wordEntry'; // stay in wordEntry until reveal
+    room.phase = 'wordEntry'; // stay until revealed
     io.to(code).emit('stateUpdate', room);
   });
 
-  // Reveal word, go to voting
+  // Reveal word, allow voting
   socket.on('revealWord', ({ code }) => {
     const room = rooms[code];
     if (!room) return;
@@ -104,6 +112,7 @@ io.on('connection', (socket) => {
       if (votesAgainstBlind <= 1) {
         room.scores[blindId] += 5;
       }
+
       Object.entries(room.votes).forEach(([voterId, votedId]) => {
         if (votedId === blindId) room.scores[voterId] += 3;
       });
@@ -114,7 +123,6 @@ io.on('connection', (socket) => {
         room.phase = 'finished';
       } else {
         room.phase = 'wordEntry';
-        // Pick a new blind player (not active)
         const newActive = room.order[room.currentActiveIndex];
         const blindCandidates = room.order.filter(id => id !== newActive);
         room.blindId = blindCandidates[Math.floor(Math.random() * blindCandidates.length)];
@@ -125,6 +133,7 @@ io.on('connection', (socket) => {
     io.to(code).emit('stateUpdate', room);
   });
 
+  // Exit room
   socket.on('exitRoom', ({ code }) => {
     const room = rooms[code];
     if (!room) return;
@@ -134,6 +143,7 @@ io.on('connection', (socket) => {
     io.to(code).emit('stateUpdate', room);
   });
 
+  // Handle disconnect
   socket.on('disconnect', () => {
     Object.values(rooms).forEach(room => {
       if (room.players[socket.id]) {
@@ -145,4 +155,6 @@ io.on('connection', (socket) => {
   });
 });
 
-server.listen(3000, () => console.log('Server running on port 3000'));
+// Use Railway port
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
