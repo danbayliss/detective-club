@@ -28,11 +28,12 @@ button {
   background: #2a6ef7;
   color: white;
   border: none;
-  transition: background 0.3s;
+  transition: background 0.3s, transform 0.3s;
 }
 
 button:hover {
   background: #1856c3;
+  transform: scale(1.05);
 }
 
 .players-grid {
@@ -47,15 +48,21 @@ button:hover {
   padding: 10px;
   border-radius: 10px;
   box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-  transition: transform 0.3s, background 0.3s;
+  transition: transform 0.5s, background 0.3s, box-shadow 0.3s, opacity 0.5s;
   opacity: 0;
-  transform: translateY(-10px);
+  transform: translateY(-20px);
   animation: fadeIn 0.5s forwards;
 }
 
 .player-card.self {
   background: #2a6ef7;
   color: white;
+  font-weight: bold;
+}
+
+.player-card.active {
+  box-shadow: 0 0 15px 5px #ffeb3b;
+  transform: scale(1.1);
 }
 
 .panel {
@@ -65,7 +72,8 @@ button:hover {
   border-radius: 10px;
   box-shadow: 0 2px 10px rgba(0,0,0,0.1);
   font-size: 1.2em;
-  animation: fadeIn 0.5s forwards;
+  opacity: 0;
+  animation: fadeInPanel 0.5s forwards;
 }
 
 #voteButtons button {
@@ -76,6 +84,7 @@ button:hover {
 
 #voteButtons button:hover {
   background: #e64a19;
+  transform: scale(1.1);
 }
 
 @keyframes fadeIn {
@@ -83,4 +92,20 @@ button:hover {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+@keyframes fadeInPanel {
+  from { opacity: 0; transform: translateY(20px);}
+  to { opacity: 1; transform: translateY(0);}
+}
+
+/* Confetti canvas */
+#confetti {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 9999;
 }
