@@ -17,17 +17,19 @@ document.addEventListener('DOMContentLoaded', () => {
   const playersList = document.getElementById('playersList');
   const scoresList = document.getElementById('scoresList');
   const activePlayerSpan = document.getElementById('activePlayer');
+
   const wordCard = document.getElementById('wordCard');
   const wordDisplay = document.getElementById('wordDisplay');
   const wordInput = document.getElementById('wordInput');
+  const shareWordBtn = document.getElementById('shareWordBtn');
   const revealWordBtn = document.getElementById('revealWordBtn');
+
   const votePanel = document.getElementById('votePanel');
   const voteButtons = document.getElementById('voteButtons');
   const voteConfirm = document.getElementById('voteConfirm');
   const votedForSpan = document.getElementById('votedFor');
-  const finalResults = document.getElementById('finalResults');
 
-  // --- Lobby ---
+  // --- Lobby buttons ---
   createBtn.addEventListener('click', () => {
     const name = nameInput.value.trim();
     if (!name) return alert('Enter your name');
@@ -55,6 +57,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   startBtn.addEventListener('click', () => {
     if (currentRoom) socket.emit('startGame', { code: currentRoom });
+  });
+
+  shareWordBtn.addEventListener('click', () => {
+    const word = wordInput.value.trim();
+    if (!word) return;
+    socket.emit('submitWord', { code: currentRoom, word });
   });
 
   revealWordBtn.addEventListener('click', () => {
@@ -92,7 +100,7 @@ document.addEventListener('DOMContentLoaded', () => {
     Object.entries(state.players).forEach(([id, player]) => {
       const div = document.createElement('div');
       div.textContent = player.name;
-      if (id === selfId) div.classList.add('player-self', 'pop');
+      if (id === selfId) div.classList.add('player-self');
       if (id === activeId) div.classList.add('player-active');
       playersList.appendChild(div);
     });
@@ -102,7 +110,6 @@ document.addEventListener('DOMContentLoaded', () => {
     Object.entries(state.scores).forEach(([id, score]) => {
       const div = document.createElement('div');
       div.textContent = `${state.players[id]?.name || id}: ${score} VP`;
-      if (id === selfId) div.classList.add('player-self', 'pop');
       scoresList.appendChild(div);
     });
 
@@ -110,37 +117,33 @@ document.addEventListener('DOMContentLoaded', () => {
     exitBtn.style.display = (state.phase === 'lobby') ? 'block' : 'none';
     activePlayerSpan.textContent = state.players[activeId]?.name || '';
 
+    // --- Reset voted box at new round ---
+    voteConfirm.style.display = 'none';
+
     // --- Word card ---
     if (state.phase === 'wordEntry') {
       wordCard.style.display = 'block';
-      wordCard.classList.add('slide-in');
-      
+
       if (activeId === selfId) {
         wordInput.style.display = 'block';
+        shareWordBtn.style.display = 'block';
         wordDisplay.style.display = 'none';
         revealWordBtn.style.display = 'block';
-        wordInput.value = state.word || '';
         wordInput.disabled = !!state.word;
-
-        wordInput.onkeypress = function(e) {
-          if (e.key === 'Enter' && wordInput.value.trim()) {
-            socket.emit('submitWord', { code: currentRoom, word: wordInput.value.trim() });
-            wordInput.disabled = true;
-          }
-        };
-
+        wordInput.value = state.word || '';
       } else if (state.blindId === selfId) {
         wordInput.style.display = 'none';
+        shareWordBtn.style.display = 'none';
         wordDisplay.style.display = 'block';
         wordDisplay.textContent = 'You are the blind player';
         revealWordBtn.style.display = 'none';
       } else {
         wordInput.style.display = 'none';
+        shareWordBtn.style.display = 'none';
         wordDisplay.style.display = 'block';
-        wordDisplay.textContent = state.word ? state.word : 'Waiting for word...';
+        wordDisplay.textContent = state.word ? `Word: ${state.word}` : 'Waiting for word...';
         revealWordBtn.style.display = 'none';
       }
-
     } else {
       wordCard.style.display = 'none';
     }
@@ -148,13 +151,18 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Voting ---
     if (state.phase === 'voting') {
       votePanel.style.display = 'block';
-      votePanel.classList.add('slide-in');
       voteButtons.innerHTML = '';
       Object.entries(state.players).forEach(([id, player]) => {
-        if (id !== activeId) {
+        if (id !== activeId && id !== selfId) {
           const btn = document.createElement('button');
           btn.textContent = player.name;
           btn.dataset.id = id;
+          voteButtons.appendChild(btn);
+        } else if (id !== activeId && id === selfId) {
+          // Self vote button
+          const btn = document.createElement('button');
+          btn.textContent = player.name;
+          btn.disabled = true; // prevent voting for self
           voteButtons.appendChild(btn);
         }
       });
@@ -163,32 +171,21 @@ document.addEventListener('DOMContentLoaded', () => {
     // Vote confirm
     if (selfId in state.votes) {
       voteConfirm.style.display = 'block';
-      voteConfirm.classList.add('slide-in');
       votedForSpan.textContent = state.players[state.votes[selfId]]?.name || '';
-    } else voteConfirm.style.display = 'none';
+      voteButtons.innerHTML = ''; // remove vote buttons after voting
+    }
 
-    // Final results
+    // --- Final Scores ---
     if (state.phase === 'finished') {
-      finalResults.style.display = 'block';
-      finalResults.classList.add('fade-in');
-      finalResults.innerHTML = '<h2>Final Scores</h2>';
-      Object.entries(state.scores).forEach(([id, score]) => {
-        const div = document.createElement('div');
-        div.textContent = `${state.players[id]?.name || id}: ${score} VP`;
-        finalResults.appendChild(div);
+      document.querySelector('#scoresContainer strong').textContent = 'Final Scores';
+      // Highlight winners
+      const maxScore = Math.max(...Object.values(state.scores));
+      scoresList.childNodes.forEach((child, index) => {
+        const playerId = Object.keys(state.scores)[index];
+        if (state.scores[playerId] === maxScore) {
+          child.classList.add('winner');
+        }
       });
-      confetti();
-    } else finalResults.style.display = 'none';
+    }
   }
-
-  function confetti() {
-    const duration = 5 * 1000;
-    const end = Date.now() + duration;
-    (function frame() {
-      confettiLib({ particleCount: 3, angle: 60, spread: 55, origin: { x: 0 } });
-      confettiLib({ particleCount: 3, angle: 120, spread: 55, origin: { x: 1 } });
-      if (Date.now() < end) requestAnimationFrame(frame);
-    })();
-  }
-  const confettiLib = window.confetti;
 });
