@@ -65,4 +65,67 @@ io.on('connection', socket => {
 
     Object.keys(room.players).forEach(id => {
       const isDetective = id === room.detectiveId;
-      const word = isDetective ? null
+      const word = isDetective ? null : (Math.random() < 0.5 ? secretWord : fakeWord);
+      io.to(id).emit('yourRole', { isDetective, word });
+    });
+
+    io.to(code).emit('stateUpdate', room);
+  });
+
+  socket.on('submitClue', ({ code, clue }) => {
+    const room = rooms[code];
+    if (!room) return;
+    room.clues[socket.id] = clue;
+    if (Object.keys(room.clues).length === Object.keys(room.players).length - 1) {
+      room.phase = 'vote';
+    }
+    io.to(code).emit('stateUpdate', room);
+  });
+
+  socket.on('vote', ({ code, targetId }) => {
+    const room = rooms[code];
+    if (!room) return;
+    room.votes[socket.id] = targetId;
+
+    if (Object.keys(room.votes).length === Object.keys(room.players).length) {
+      const tally = {};
+      Object.values(room.votes).forEach(v => tally[v] = (tally[v] || 0) + 1);
+      const votedOut = Object.keys(tally).sort((a, b) => tally[b] - tally[a])[0];
+
+      if (votedOut === room.detectiveId) {
+        Object.keys(room.players).forEach(id => {
+          if (id !== room.detectiveId) room.scores[id] += 2;
+        });
+      } else {
+        room.scores[room.detectiveId] += 3;
+      }
+
+      room.phase = 'reveal';
+      room.votedOut = votedOut;
+    }
+
+    io.to(code).emit('stateUpdate', room);
+  });
+
+  socket.on('nextRound', ({ code }) => {
+    const room = rooms[code];
+    if (!room) return;
+    nextRound(room);
+    io.to(code).emit('stateUpdate', room);
+  });
+
+  socket.on('disconnect', () => {
+    for (const code in rooms) {
+      if (rooms[code].players[socket.id]) {
+        delete rooms[code].players[socket.id];
+        delete rooms[code].scores[socket.id];
+        io.to(code).emit('stateUpdate', rooms[code]);
+      }
+    }
+  });
+
+});
+
+// Use dynamic port for Railway
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
