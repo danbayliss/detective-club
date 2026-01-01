@@ -11,6 +11,7 @@
 
 <div id="game">
 
+  <!-- Lobby -->
   <div id="lobby">
     <input type="text" id="nameInput" placeholder="Enter your name">
     <button id="createBtn">Create Room</button>
@@ -19,21 +20,36 @@
     <button id="joinBtn">Join Room</button>
   </div>
 
+  <!-- Room -->
   <div id="room" style="display:none;">
     <h2>Room Code: <span id="roomCode"></span></h2>
-    
+
     <div id="playersContainer">
-      <strong>Players in room:</strong>
+      <strong>Players:</strong>
       <div id="playersList" class="players-grid"></div>
     </div>
 
-    <button id="startBtn">Start Game</button>
-    <button id="revealBtn" style="display:none;">Reveal Word (Detective)</button>
+    <div id="scoresContainer">
+      <strong>Scores:</strong>
+      <div id="scoresList"></div>
+    </div>
 
-    <div id="rolePanel" class="panel" style="display:none;"></div>
-    <div id="clues" style="display:none;"></div>
-    <div id="votes" style="display:none;"></div>
-    <div id="results" style="display:none;"></div>
+    <div id="activePlayerPanel" class="panel" style="display:none;"></div>
+
+    <div id="wordInputPanel" style="display:none;">
+      <input type="text" id="wordInput" placeholder="Enter your word">
+      <button id="submitWordBtn">Submit Word</button>
+      <button id="revealWordBtn" style="display:none;">Reveal Word to Blind Player</button>
+    </div>
+
+    <div id="votePanel" style="display:none;">
+      <strong>Vote who is the blind player:</strong>
+      <div id="voteButtons"></div>
+    </div>
+
+    <div id="finalResults" class="panel" style="display:none;"></div>
+
+    <button id="startBtn">Start Game</button>
   </div>
 
 </div>
