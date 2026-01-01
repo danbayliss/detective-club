@@ -29,28 +29,21 @@
       <button id="exitBtn">Exit Room</button>
     </div>
 
-    <!-- Main Container -->
-    <div id="mainContainer">
-      <!-- Left Column: Players List -->
-      <div id="playersColumn">
-        <div class="panelTitle">Players</div>
-        <div id="playersList"></div>
-      </div>
-
-      <!-- Right Column: Scores -->
-      <div id="scoresColumn">
-        <div class="panelTitle">Scores</div>
-        <div id="scoresList"></div>
-      </div>
+    <!-- Players & Scores -->
+    <div id="playersContainer">
+      <div class="panelTitle">Players & Scores</div>
+      <div id="playersTable"></div>
     </div>
 
-    <!-- Center Panel for Word / Voting / Start -->
+    <!-- Center Panel for Game Actions -->
     <div id="centerPanel">
+      <!-- Start Game / Waiting -->
       <div id="startGamePanel">
         <button id="startBtn">Start Game</button>
         <div id="waitingMsg"></div>
       </div>
 
+      <!-- Word Card -->
       <div id="wordCard" class="panelCard">
         <input type="text" id="wordInput" placeholder="Enter the word">
         <button id="shareWordBtn">Share Word</button>
@@ -58,19 +51,21 @@
         <button id="startVotingBtn" style="display:none;">Start Voting</button>
       </div>
 
+      <!-- Voting Panel -->
       <div id="votePanel" class="panelCard">
         <div id="votePrompt">Vote who is the blind player:</div>
         <div id="voteButtons"></div>
         <div id="voteConfirm">You voted for: <span id="votedFor"></span></div>
       </div>
 
+      <!-- Start New Game -->
       <div id="newGamePanel" style="display:none;">
         <button id="newGameBtn">Start New Game</button>
       </div>
     </div>
   </div>
 
-  <!-- Confetti Canvas -->
+  <!-- Confetti -->
   <canvas id="confettiCanvas"></canvas>
 
   <script src="/socket.io/socket.io.js"></script>
