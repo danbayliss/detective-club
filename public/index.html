@@ -7,9 +7,13 @@
 </head>
 <body>
 <div id="game">
+  <!-- Header / Title -->
+  <header>
+    <h1 class="game-title">Detective Club</h1>
+  </header>
+
   <!-- Lobby -->
   <div id="lobby" class="panel">
-    <h1>Detective Club</h1>
     <input type="text" id="nameInput" placeholder="Enter your name">
     <input type="text" id="roomCodeInput" placeholder="Room code (to join)">
     <div class="buttons">
@@ -22,6 +26,7 @@
   <!-- Room / Game -->
   <div id="room" style="display:none;">
     <div id="startGamePanel" class="center-card">
+      <p id="waitingMsg">Waiting for minimum number of players...</p>
       <button id="startBtn">Start Game</button>
     </div>
 
@@ -64,6 +69,6 @@
 
 <script src="/socket.io/socket.io.js"></script>
 <script src="main.js"></script>
-<script src="confetti.min.js"></script> <!-- optional library for confetti -->
+<script src="confetti.min.js"></script>
 </body>
 </html>
