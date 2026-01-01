@@ -8,9 +8,16 @@ const lobby = document.getElementById('lobby');
 const roomDiv = document.getElementById('room');
 const roomCodeSpan = document.getElementById('roomCode');
 const playersList = document.getElementById('playersList');
+const scoresList = document.getElementById('scoresList');
+const activePlayerPanel = document.getElementById('activePlayerPanel');
+const wordInputPanel = document.getElementById('wordInputPanel');
+const wordInput = document.getElementById('wordInput');
+const submitWordBtn = document.getElementById('submitWordBtn');
+const revealWordBtn = document.getElementById('revealWordBtn');
+const votePanel = document.getElementById('votePanel');
+const voteButtons = document.getElementById('voteButtons');
+const finalResults = document.getElementById('finalResults');
 const startBtn = document.getElementById('startBtn');
-const revealBtn = document.getElementById('revealBtn');
-const rolePanel = document.getElementById('rolePanel');
 
 let currentRoom = null;
 let myName = '';
@@ -60,82 +67,53 @@ exitBtn.onclick = () => {
   currentRoom = null;
   localStorage.removeItem('currentRoom');
   localStorage.removeItem('playerName');
-  rolePanel.style.display = 'none';
+  activePlayerPanel.style.display = 'none';
 };
 roomDiv.prepend(exitBtn);
 
-// Start game (host picks secret word)
+// Start game
 startBtn.onclick = () => {
-  const secretWord = prompt('Enter the secret word:');
-  if (!secretWord) return alert('Secret word is required');
-  socket.emit('startGame', { code: currentRoom, secretWord, pickerId: myId });
+  socket.emit('startGame', { code: currentRoom });
 };
 
-// Reveal word (detective)
-revealBtn.onclick = () => {
+// Submit word
+submitWordBtn.onclick = () => {
+  const word = wordInput.value.trim();
+  if (!word) return alert('Enter a word');
+  socket.emit('submitWord', { code: currentRoom, word });
+  wordInput.value = '';
+  wordInputPanel.style.display = 'none';
+};
+
+// Reveal word to blind player
+revealWordBtn.onclick = () => {
   socket.emit('revealWord', { code: currentRoom });
+  revealWordBtn.style.display = 'none';
 };
 
-// Role assignment
-socket.on('yourRole', ({ isDetective, isBlind, word }) => {
-  rolePanel.style.display = 'block';
-  if (isDetective) {
-    rolePanel.textContent = 'You are the Detective! Click "Reveal Word" when ready.';
-    revealBtn.style.display = 'inline-block';
-  } else if (isBlind) {
-    rolePanel.textContent = 'You are the blind player — you don’t know the word.';
-    revealBtn.style.display = 'none';
-  } else {
-    rolePanel.textContent = `Your word is: ${word}`;
-    revealBtn.style.display = 'none';
-  }
-});
-
-// Word revealed
-socket.on('wordRevealed', (word) => {
-  rolePanel.textContent = `The secret word is: ${word}`;
-});
-
-// Room joined / rejoined
-socket.on('roomJoined', ({ code, state }) => {
-  currentRoom = code;
-  roomCodeSpan.textContent = code;
-  lobby.style.display = 'none';
-  roomDiv.style.display = 'block';
-  updatePlayers(state);
-});
-
-socket.on('stateUpdate', state => {
-  updatePlayers(state);
-});
-
-socket.on('rejoined', (state) => {
-  lobby.style.display = 'none';
-  roomDiv.style.display = 'block';
-  updatePlayers(state);
-});
-
-// Update player cards with animation
-function updatePlayers(state) {
-  const existingNames = Array.from(playersList.children).map(c => c.textContent);
-  playersList.innerHTML = '';
-
-  Object.values(state.players).forEach(p => {
-    const div = document.createElement('div');
-    div.classList.add('player-card');
-    if (p.name === myName) div.classList.add('self');
-    div.textContent = p.name;
-    playersList.appendChild(div);
-
-    // Animate new players
-    if (!existingNames.includes(p.name)) {
-      div.style.opacity = 0;
-      div.style.transform = 'translateY(-15px)';
-      setTimeout(() => {
-        div.style.transition = 'all 0.4s ease';
-        div.style.opacity = 1;
-        div.style.transform = 'translateY(0)';
-      }, 50);
-    }
+// Voting
+function createVoteButtons(state) {
+  voteButtons.innerHTML = '';
+  Object.entries(state.players).forEach(([id, p]) => {
+    if (id === myId) return; // skip voting for self
+    const btn = document.createElement('button');
+    btn.textContent = p.name;
+    btn.onclick = () => {
+      socket.emit('voteBlind', { code: currentRoom, votedId: id });
+      votePanel.style.display = 'none';
+    };
+    voteButtons.appendChild(btn);
   });
 }
+
+// Update UI
+socket.on('stateUpdate', state => {
+  currentRoom = state.code || currentRoom;
+  roomCodeSpan.textContent = currentRoom;
+  lobby.style.display = 'none';
+  roomDiv.style.display = 'block';
+  finalResults.style.display = 'none';
+
+  // Update players
+  playersList.innerHTML = '';
+  Object.values(
