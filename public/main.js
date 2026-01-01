@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const roomDiv = document.getElementById('room');
   const startGamePanel = document.getElementById('startGamePanel');
   const startBtn = document.getElementById('startBtn');
+  const waitingMsg = document.getElementById('waitingMsg');
   const exitBtn = document.getElementById('exitBtn');
   const createBtn = document.getElementById('createBtn');
   const joinBtn = document.getElementById('joinBtn');
@@ -120,9 +121,25 @@ document.addEventListener('DOMContentLoaded', () => {
       scoresList.appendChild(div);
     });
 
-    // Start game button & exit
-    startGamePanel.style.display = (playerName === state.players[state.creatorId]?.name && state.phase === 'lobby') ? 'flex' : 'none';
-    exitBtn.style.display = (state.phase === 'lobby') ? 'block' : 'none';
+    // Start game button & waiting messages
+    if (playerName === state.players[state.creatorId]?.name) {
+      if (Object.keys(state.players).length >= 4 && state.phase === 'lobby') {
+        startGamePanel.style.display = 'flex';
+        waitingMsg.style.display = 'none';
+      } else {
+        startGamePanel.style.display = 'flex';
+        startBtn.style.display = 'none';
+        waitingMsg.style.display = 'block';
+        waitingMsg.textContent = 'Waiting for minimum number of players...';
+      }
+    } else {
+      startGamePanel.style.display = 'none';
+    }
+
+    if (state.phase === 'lobby' && playerName !== state.players[state.creatorId]?.name) {
+      waitingMsg.style.display = 'block';
+      waitingMsg.textContent = 'Waiting for the game to start...';
+    }
 
     // --- Word card ---
     if (state.phase === 'wordEntry') {
@@ -142,7 +159,7 @@ document.addEventListener('DOMContentLoaded', () => {
         shareWordBtn.style.display = 'none';
         revealWordBtn.style.display = 'none';
         wordDisplay.style.display = 'block';
-        wordDisplay.textContent = state.word ? `Word: ${state.word}` : 'You are the blind player';
+        wordDisplay.textContent = 'You are the blind player';
       } else {
         wordInput.style.display = 'none';
         shareWordBtn.style.display = 'none';
@@ -151,53 +168,5 @@ document.addEventListener('DOMContentLoaded', () => {
         wordDisplay.textContent = state.word ? `Word: ${state.word}` : 'Waiting for word...';
       }
     } else wordCard.style.display = 'none';
-
-    // --- Voting ---
-    if (state.phase === 'voting') {
-      votePanel.style.display = 'block';
-      votePrompt.style.display = 'block';
-      voteButtons.innerHTML = '';
-
-      Object.entries(state.players).forEach(([id, player]) => {
-        if (id !== selfId && id !== activeId) {
-          const btn = document.createElement('button');
-          btn.textContent = player.name;
-          btn.dataset.id = id;
-          voteButtons.appendChild(btn);
-        }
-      });
-    } else votePanel.style.display = 'none';
-
-    // --- Vote confirm ---
-    if (selfId in state.votes) {
-      voteConfirm.style.display = 'block';
-      votedForSpan.textContent = state.players[state.votes[selfId]]?.name || '';
-      votePrompt.style.display = 'none';
-      voteButtons.innerHTML = '';
-    }
-
-    // --- Hide vote confirm when scores update ---
-    if (state.phase === 'wordEntry' || state.phase === 'finished') {
-      voteConfirm.style.display = 'none';
-    }
-
-    // --- Final scores & confetti ---
-    if (state.phase === 'finished') {
-      document.querySelector('#scoresContainer strong').textContent = 'Final Scores';
-      const maxScore = Math.max(...Object.values(state.scores));
-      scoresList.childNodes.forEach((child, index) => {
-        const playerId = Object.keys(state.scores)[index];
-        if (state.scores[playerId] === maxScore) {
-          child.classList.add('winner');
-        }
-      });
-      launchConfetti();
-    }
-  }
-
-  function launchConfetti() {
-    if (window.confetti) {
-      confetti({ particleCount: 200, spread: 70, origin: { y: 0.6 } });
-    }
   }
 });
