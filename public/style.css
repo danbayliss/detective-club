@@ -62,18 +62,14 @@ button:hover {
   margin-bottom: 20px;
 }
 
-/* Main Container: Players & Scores Columns */
-#mainContainer {
-  display: flex;
-  justify-content: center;
-  gap: 20px;
-  flex-wrap: wrap;
-  margin-bottom: 20px;
-}
-
-#playersColumn, #scoresColumn {
-  flex: 1 1 200px;
-  max-width: 250px;
+/* Players Container as Flex Table */
+#playersContainer {
+  background: #fff;
+  padding: 20px;
+  border-radius: 15px;
+  max-width: 500px;
+  margin: 0 auto 20px auto;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
 }
 
 .panelTitle {
@@ -82,31 +78,35 @@ button:hover {
   margin-bottom: 10px;
 }
 
-/* Players & Scores List */
-#playersList div, #scoresList div {
-  padding: 10px;
-  margin: 5px 0;
-  border-radius: 10px;
-  background: #fff;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-  transition: transform 0.2s, background 0.2s;
-  text-align: center;
+/* Player Rows */
+.playerRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  margin-bottom: 6px;
+  border-radius: 8px;
+  background: #f0f4f8;
+  transition: all 0.2s;
 }
 
-.player-self {
+.playerRow.player-self {
   background: #d4f0ff;
   border: 2px solid #4a90e2;
-  font-weight: bold;
 }
 
-.player-active {
+.playerRow.player-active {
   border: 2px dashed #ffb142;
 }
 
-.self-score {
-  background: #d4f0ff;
-  border: 2px solid #4a90e2;
+.playerName {
   font-weight: bold;
+  flex: 1;
+}
+
+.playerScore {
+  min-width: 50px;
+  text-align: right;
 }
 
 .winner {
@@ -167,14 +167,7 @@ button:hover {
 
 /* Responsive */
 @media(max-width: 600px){
-  #mainContainer {
-    flex-direction: column;
-    align-items: center;
-  }
-  #playersColumn, #scoresColumn {
-    max-width: 90%;
-  }
-  .panelCard {
+  #centerPanel, #playersContainer {
     width: 95%;
   }
 }
