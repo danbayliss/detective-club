@@ -23,7 +23,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const wordDisplay = document.getElementById('wordDisplay');
   const wordInput = document.getElementById('wordInput');
   const shareWordBtn = document.getElementById('shareWordBtn');
-  const revealWordBtn = document.getElementById('revealWordBtn');
+  const startVotingBtn = document.createElement('button');
+  startVotingBtn.id = 'startVotingBtn';
+  startVotingBtn.textContent = 'Start Voting';
+  startVotingBtn.style.display = 'none';
+  wordCard.appendChild(startVotingBtn);
 
   const votePanel = document.getElementById('votePanel');
   const voteButtons = document.getElementById('voteButtons');
@@ -31,7 +35,16 @@ document.addEventListener('DOMContentLoaded', () => {
   const voteConfirm = document.getElementById('voteConfirm');
   const votedForSpan = document.getElementById('votedFor');
 
-  const confettiCanvas = document.getElementById('confettiCanvas');
+  // Confetti
+  function launchConfetti() {
+    if (window.confetti) {
+      confetti({
+        particleCount: 200,
+        spread: 70,
+        origin: { y: 0.6 },
+      });
+    }
+  }
 
   // --- Lobby ---
   createBtn.addEventListener('click', () => {
@@ -68,12 +81,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!word) return;
     socket.emit('submitWord', { code: currentRoom, word });
     wordDisplay.textContent = `Word shared: ${word}`;
-    wordInput.disabled = true;
+    wordInput.style.display = 'none';
     shareWordBtn.style.display = 'none';
+    startVotingBtn.style.display = 'block';
   });
 
-  revealWordBtn.addEventListener('click', () => {
-    if (currentRoom) socket.emit('revealWord', { code: currentRoom });
+  startVotingBtn.addEventListener('click', () => {
+    if (currentRoom) socket.emit('startVoting', { code: currentRoom });
+    startVotingBtn.style.display = 'none';
   });
 
   votePanel.addEventListener('click', e => {
@@ -83,7 +98,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // --- Socket events ---
-  socket.on('joinError', msg => joinError.textContent = msg);
+  socket.on('joinError', msg => (joinError.textContent = msg));
   socket.on('roomJoined', ({ code, state }) => {
     currentRoom = code;
     localStorage.setItem('room', code);
@@ -121,6 +136,7 @@ document.addEventListener('DOMContentLoaded', () => {
     Object.entries(state.scores).forEach(([id, score]) => {
       const div = document.createElement('div');
       div.textContent = `${state.players[id]?.name || id}: ${score} VP`;
+      if (id === selfId) div.classList.add('self-score');
       scoresList.appendChild(div);
     });
 
@@ -147,35 +163,36 @@ document.addEventListener('DOMContentLoaded', () => {
       waitingMsg.style.display = 'none';
     }
 
-    // --- Word Card ---
+    // --- Word Entry / Sharing ---
     if (state.phase === 'wordEntry') {
       wordCard.style.display = 'block';
-      voteConfirm.style.display = 'none';
       votePanel.style.display = 'none';
+      voteConfirm.style.display = 'none';
 
       if (activeId === selfId) {
-        wordInput.style.display = 'block';
+        wordInput.style.display = state.word ? 'none' : 'block';
         shareWordBtn.style.display = state.word ? 'none' : 'block';
-        revealWordBtn.style.display = 'block';
-        wordInput.disabled = !!state.word;
-        wordInput.value = state.word || '';
+        startVotingBtn.style.display = state.word ? 'block' : 'none';
         wordDisplay.style.display = state.word ? 'block' : 'none';
+        wordDisplay.textContent = state.word ? `Word shared: ${state.word}` : '';
       } else if (state.blindId === selfId) {
         wordInput.style.display = 'none';
         shareWordBtn.style.display = 'none';
-        revealWordBtn.style.display = 'none';
+        startVotingBtn.style.display = 'none';
         wordDisplay.style.display = 'block';
         wordDisplay.textContent = 'You are the blind player';
       } else {
         wordInput.style.display = 'none';
         shareWordBtn.style.display = 'none';
-        revealWordBtn.style.display = 'none';
+        startVotingBtn.style.display = 'none';
         wordDisplay.style.display = 'block';
         wordDisplay.textContent = state.word ? `Word: ${state.word}` : 'Waiting for word...';
       }
-    } else wordCard.style.display = 'none';
+    } else {
+      wordCard.style.display = 'none';
+    }
 
-    // --- Voting Panel & Vote Confirm ---
+    // --- Voting ---
     if (state.phase === 'voting') {
       votePanel.style.display = 'block';
       votePrompt.style.display = 'block';
@@ -190,34 +207,23 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     } else votePanel.style.display = 'none';
 
+    // --- Vote confirmation ---
     if (selfId in state.votes) {
       voteConfirm.style.display = 'block';
       votedForSpan.textContent = state.players[state.votes[selfId]]?.name || '';
       votePrompt.style.display = 'none';
       voteButtons.innerHTML = '';
-    }
+    } else voteConfirm.style.display = 'none';
 
-    if (state.phase === 'wordEntry' || state.phase === 'finished') {
-      voteConfirm.style.display = 'none';
-    }
-
-    // --- Final Scores & Confetti ---
+    // --- Final Scores ---
     if (state.phase === 'finished') {
       document.querySelector('#scoresContainer strong').textContent = 'Final Scores';
       const maxScore = Math.max(...Object.values(state.scores));
       scoresList.childNodes.forEach((child, index) => {
         const playerId = Object.keys(state.scores)[index];
-        if (state.scores[playerId] === maxScore) {
-          child.classList.add('winner');
-        }
+        if (state.scores[playerId] === maxScore) child.classList.add('winner');
       });
       launchConfetti();
-    }
-  }
-
-  function launchConfetti() {
-    if (window.confetti) {
-      confetti({ particleCount: 200, spread: 70, origin: { y: 0.6 } });
     }
   }
 });
