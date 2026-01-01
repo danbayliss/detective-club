@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <!-- Title -->
   <h1 id="title">Detective Club</h1>
 
   <!-- Lobby -->
@@ -17,20 +18,21 @@
       <button id="joinBtn">Join Room</button>
     </div>
     <input id="roomCodeInput" type="text" placeholder="Enter room code to join">
-    <div id="joinError" style="color:red; font-weight:bold;"></div>
+    <div id="joinError" class="errorText"></div>
   </div>
 
   <!-- Room -->
-  <div id="room" style="display:none; width:100%;">
+  <div id="room" style="display:none;">
+    <!-- Room Header -->
     <div id="roomHeader">
       Room Code: <span id="roomCode"></span>
       <button id="exitBtn">Exit Room</button>
     </div>
 
-    <!-- Start Game / Lobby -->
+    <!-- Start Game / Waiting -->
     <div id="startGamePanel">
       <button id="startBtn">Start Game</button>
-      <div id="waitingMsg">Waiting...</div>
+      <div id="waitingMsg"></div>
     </div>
 
     <!-- Players List -->
@@ -63,9 +65,10 @@
     </div>
   </div>
 
-  <!-- Confetti Canvas -->
+  <!-- Confetti -->
   <canvas id="confettiCanvas"></canvas>
 
+  <!-- Scripts -->
   <script src="/socket.io/socket.io.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
   <script src="main.js"></script>
