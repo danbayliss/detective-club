@@ -115,14 +115,27 @@ socket.on('rejoined', (state) => {
   updatePlayers(state);
 });
 
-// Update player cards
+// Update player cards with animation
 function updatePlayers(state) {
+  const existingNames = Array.from(playersList.children).map(c => c.textContent);
   playersList.innerHTML = '';
+
   Object.values(state.players).forEach(p => {
     const div = document.createElement('div');
     div.classList.add('player-card');
     if (p.name === myName) div.classList.add('self');
     div.textContent = p.name;
     playersList.appendChild(div);
+
+    // Animate new players
+    if (!existingNames.includes(p.name)) {
+      div.style.opacity = 0;
+      div.style.transform = 'translateY(-15px)';
+      setTimeout(() => {
+        div.style.transition = 'all 0.4s ease';
+        div.style.opacity = 1;
+        div.style.transform = 'translateY(0)';
+      }, 50);
+    }
   });
 }
