@@ -70,9 +70,12 @@ joinBtn.onclick = () => {
   const code = roomCodeInput.value.trim();
   if (!name || !code) return alert('Enter name and room code');
   myName = name;
-  socket.emit('joinRoom', { name, code }); // <-- emits joinRoom event
-  savePlayerInfo(); // saves to localStorage
+  socket.emit('joinRoom', { name, code });
+  savePlayerInfo();
 };
+
+// JOIN ERROR
+socket.on('joinError', message => alert(message));
 
 // EXIT ROOM
 const exitBtn = document.createElement('button');
@@ -128,11 +131,14 @@ socket.on('stateUpdate', state => {
   lobby.style.display = 'none';
   roomDiv.style.display = 'block';
 
-  // Only room creator can see start button
+  // Only room creator can see start button during lobby
   startBtn.style.display = (state.creatorId === myId && state.phase === 'lobby') ? 'inline-block' : 'none';
 
   // Players
   playersList.innerHTML = '';
+  const playerCount = Object.keys(state.players).length;
+  document.getElementById('playersContainer').style.minHeight = `${60 + playerCount * 60}px`;
+
   Object.entries(state.players).forEach(([id, p]) => {
     const div = document.createElement('div');
     div.classList.add('player-card');
