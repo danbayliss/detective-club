@@ -8,22 +8,34 @@
 </head>
 <body>
 <h1>Detective Club</h1>
+
 <div id="game">
+
   <div id="lobby">
     <input type="text" id="nameInput" placeholder="Enter your name">
     <button id="createBtn">Create Room</button>
+    <br>
     <input type="text" id="roomCodeInput" placeholder="Room code">
     <button id="joinBtn">Join Room</button>
   </div>
+
   <div id="room" style="display:none;">
     <h2>Room Code: <span id="roomCode"></span></h2>
-    <div id="players"></div>
+    
+    <div id="playersContainer">
+      <strong>Players in room:</strong>
+      <div id="playersList" class="players-grid"></div>
+    </div>
+
     <button id="startBtn">Start Game</button>
+
     <div id="clues" style="display:none;"></div>
     <div id="votes" style="display:none;"></div>
     <div id="results" style="display:none;"></div>
   </div>
+
 </div>
+
 <script src="/socket.io/socket.io.js"></script>
 <script src="main.js"></script>
 </body>
