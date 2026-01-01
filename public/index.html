@@ -6,49 +6,57 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div id="game">
-  <div id="lobby">
-    <h2>Detective Club</h2>
-    <input type="text" id="nameInput" placeholder="Enter your name">
-    <input type="text" id="roomCodeInput" placeholder="Room code (to join)">
-    <button id="createBtn">Create Room</button>
-    <button id="joinBtn">Join Room</button>
+  <div id="game">
+    <!-- Lobby -->
+    <div id="lobby">
+      <h2>Detective Club</h2>
+      <input type="text" id="nameInput" placeholder="Enter your name">
+      <input type="text" id="roomCodeInput" placeholder="Room code (to join)">
+      <button id="createBtn">Create Room</button>
+      <button id="joinBtn">Join Room</button>
+      <p id="joinError" class="error"></p>
+    </div>
+
+    <!-- Room / Game -->
+    <div id="room" style="display:none;">
+      <h2>Room Code: <span id="roomCode"></span></h2>
+      <button id="exitBtn">Exit Room</button>
+
+      <div id="playersContainer">
+        <strong>Players:</strong>
+        <div id="playersList" class="players-grid"></div>
+      </div>
+
+      <div id="scoresContainer">
+        <strong>Scores:</strong>
+        <div id="scoresList"></div>
+      </div>
+
+      <div id="activePlayerPanel" class="panel">
+        <p>Active Player: <span id="activePlayer"></span></p>
+      </div>
+
+      <div id="wordInputPanel" class="panel" style="display:none;">
+        <input type="text" id="wordInput" placeholder="Enter the word">
+        <button id="submitWordBtn">Submit Word</button>
+        <button id="revealWordBtn" style="display:none;">Reveal to Blind Player</button>
+      </div>
+
+      <div id="votePanel" class="panel" style="display:none;">
+        <p>Vote who is the blind player:</p>
+        <div id="voteButtons"></div>
+      </div>
+
+      <div id="finalResults" class="panel" style="display:none;"></div>
+
+      <button id="startBtn" style="display:none;">Start Game</button>
+    </div>
   </div>
 
-  <div id="room" style="display:none;">
-    <h2>Room Code: <span id="roomCode"></span></h2>
-    <div id="playersContainer">
-      <strong>Players:</strong>
-      <div id="playersList" class="players-grid"></div>
-    </div>
+  <canvas id="confetti"></canvas>
 
-    <div id="scoresContainer">
-      <strong>Scores:</strong>
-      <div id="scoresList"></div>
-    </div>
-
-    <div id="activePlayerPanel" class="panel"></div>
-
-    <div id="wordInputPanel" class="panel">
-      <input type="text" id="wordInput" placeholder="Enter word">
-      <button id="submitWordBtn">Submit Word</button>
-      <button id="revealWordBtn">Reveal to Blind Player</button>
-    </div>
-
-    <div id="votePanel" class="panel">
-      <p>Vote who is the blind player:</p>
-      <div id="voteButtons"></div>
-    </div>
-
-    <div id="finalResults" class="panel"></div>
-
-    <button id="startBtn">Start Game</button>
-  </div>
-</div>
-
-<canvas id="confetti"></canvas>
-<script src="/socket.io/socket.io.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
-<script src="main.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+  <script src="main.js"></script>
 </body>
 </html>
