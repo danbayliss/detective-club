@@ -23,7 +23,7 @@ let currentRoom = null;
 let myName = '';
 let myId = null;
 
-// CONFETTI LIBRARY
+// CONFETTI
 let confettiRunning = false;
 function runConfetti() {
   if (confettiRunning) return;
@@ -74,7 +74,7 @@ joinBtn.onclick = () => {
   savePlayerInfo();
 };
 
-// EXIT
+// EXIT ROOM
 const exitBtn = document.createElement('button');
 exitBtn.textContent = 'Exit Room';
 exitBtn.onclick = () => {
@@ -89,14 +89,12 @@ exitBtn.onclick = () => {
 roomDiv.prepend(exitBtn);
 
 // START GAME
-startBtn.onclick = () => {
-  socket.emit('startGame', { code: currentRoom });
-};
+startBtn.onclick = () => socket.emit('startGame', { code: currentRoom });
 
 // SUBMIT WORD
 submitWordBtn.onclick = () => {
   const word = wordInput.value.trim();
-  if (!word) return alert('Enter a word');
+  if (!word) return alert('Enter word');
   socket.emit('submitWord', { code: currentRoom, word });
   wordInput.value = '';
   wordInputPanel.style.display = 'none';
@@ -123,14 +121,17 @@ function createVoteButtons(state) {
   });
 }
 
-// UPDATE UI WITH ANIMATIONS
+// UPDATE UI
 socket.on('stateUpdate', state => {
   currentRoom = state.code || currentRoom;
   roomCodeSpan.textContent = currentRoom;
   lobby.style.display = 'none';
   roomDiv.style.display = 'block';
 
-  // PLAYERS
+  // Only room creator can see start button
+  startBtn.style.display = (state.creatorId === myId && state.phase === 'lobby') ? 'inline-block' : 'none';
+
+  // Players
   playersList.innerHTML = '';
   Object.entries(state.players).forEach(([id, p]) => {
     const div = document.createElement('div');
@@ -142,38 +143,38 @@ socket.on('stateUpdate', state => {
     playersList.appendChild(div);
   });
 
-  // SCORE UPDATES (animated count)
+  // Scores
   scoresList.innerHTML = '';
-  Object.entries(state.scores).forEach(([id, score]) => {
+  Object.entries(state.scores).forEach(([id, s]) => {
     const div = document.createElement('div');
-    div.textContent = `${state.players[id].name}: ${score} VP`;
+    div.textContent = `${state.players[id].name}: ${s} VP`;
     scoresList.appendChild(div);
   });
 
-  // PHASE TRANSITIONS
+  // Panels
   wordInputPanel.style.display = 'none';
   revealWordBtn.style.display = 'none';
   votePanel.style.display = 'none';
   finalResults.style.display = 'none';
-  activePlayerPanel.classList.remove('show');
+  activePlayerPanel.style.display = 'none';
 
   setTimeout(() => activePlayerPanel.classList.add('show'), 100);
 
   if (state.phase === 'wordEntry') {
+    activePlayerPanel.style.display = 'block';
     activePlayerPanel.textContent = `Active Player: ${state.players[state.currentActiveId].name}`;
     if (state.currentActiveId === myId) {
       wordInputPanel.style.display = 'block';
       revealWordBtn.style.display = 'inline-block';
     }
   } else if (state.phase === 'voting') {
+    activePlayerPanel.style.display = 'block';
     activePlayerPanel.textContent = `Active Player: ${state.players[state.currentActiveId].name}`;
     votePanel.style.display = 'block';
     createVoteButtons(state);
   } else if (state.phase === 'end') {
-    activePlayerPanel.style.display = 'none';
     finalResults.style.display = 'block';
     runConfetti();
-
     const maxScore = Math.max(...Object.values(state.scores));
     const winners = Object.entries(state.scores)
       .filter(([id, s]) => s === maxScore)
@@ -186,12 +187,12 @@ socket.on('stateUpdate', state => {
   }
 });
 
-// WORD REVEALED TO BLIND
+// Word revealed
 socket.on('wordRevealed', word => {
   activePlayerPanel.textContent += ` | Word revealed to blind player: ${word}`;
 });
 
-// ROOM JOINED / REJOINED
+// Room joined / rejoined
 socket.on('roomJoined', ({ code, state }) => {
   currentRoom = code;
   roomCodeSpan.textContent = code;
