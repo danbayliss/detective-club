@@ -21,7 +21,6 @@
 
   <!-- Room / Game -->
   <div id="room" style="display:none;">
-    <!-- Centered start button card -->
     <div id="startGamePanel" class="center-card">
       <button id="startBtn">Start Game</button>
     </div>
@@ -47,5 +46,28 @@
       <p>Active Player: <span id="activePlayer"></span></p>
     </div>
 
-    <div id="wordCard" class="panel" style="display:none;">
+    <div id="wordCard" class="panel slide-in" style="display:none;">
       <p id="wordDisplay"></p>
+      <button id="revealWordBtn" style="display:none;">Reveal Word</button>
+    </div>
+
+    <div id="votePanel" class="panel slide-in" style="display:none;">
+      <p>Vote who is the blind player:</p>
+      <div id="voteButtons"></div>
+    </div>
+
+    <div id="voteConfirm" class="panel slide-in" style="display:none;">
+      <p>You voted for <span id="votedFor"></span></p>
+    </div>
+
+    <div id="finalResults" class="panel fade-in" style="display:none;"></div>
+  </div>
+</div>
+
+<canvas id="confetti"></canvas>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+<script src="main.js"></script>
+</body>
+</html>
