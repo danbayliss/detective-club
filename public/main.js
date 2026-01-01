@@ -99,9 +99,12 @@ document.addEventListener('DOMContentLoaded', () => {
     renderRoom(state);
   });
 
+  // --- Render Room ---
   function renderRoom(state) {
     const selfId = Object.keys(state.players).find(k => state.players[k].name === playerName);
     const activeId = state.order[state.currentActiveIndex];
+    const creatorId = state.creatorId;
+    const selfIsCreator = selfId === creatorId;
 
     // --- Players list ---
     playersList.innerHTML = '';
@@ -121,27 +124,30 @@ document.addEventListener('DOMContentLoaded', () => {
       scoresList.appendChild(div);
     });
 
-    // Start game button & waiting messages
-    if (playerName === state.players[state.creatorId]?.name) {
-      if (Object.keys(state.players).length >= 4 && state.phase === 'lobby') {
-        startGamePanel.style.display = 'flex';
-        waitingMsg.style.display = 'none';
+    // --- Lobby Start Button / Waiting Messages ---
+    if (state.phase === 'lobby') {
+      if (selfIsCreator) {
+        if (Object.keys(state.players).length >= 4) {
+          startGamePanel.style.display = 'flex';
+          startBtn.style.display = 'block';
+          waitingMsg.style.display = 'none';
+        } else {
+          startGamePanel.style.display = 'flex';
+          startBtn.style.display = 'none';
+          waitingMsg.style.display = 'block';
+          waitingMsg.textContent = 'Waiting for minimum number of players...';
+        }
       } else {
-        startGamePanel.style.display = 'flex';
-        startBtn.style.display = 'none';
+        startGamePanel.style.display = 'none';
         waitingMsg.style.display = 'block';
-        waitingMsg.textContent = 'Waiting for minimum number of players...';
+        waitingMsg.textContent = 'Waiting for the game to start...';
       }
     } else {
       startGamePanel.style.display = 'none';
+      waitingMsg.style.display = 'none';
     }
 
-    if (state.phase === 'lobby' && playerName !== state.players[state.creatorId]?.name) {
-      waitingMsg.style.display = 'block';
-      waitingMsg.textContent = 'Waiting for the game to start...';
-    }
-
-    // --- Word card ---
+    // --- Word Card ---
     if (state.phase === 'wordEntry') {
       wordCard.style.display = 'block';
       voteConfirm.style.display = 'none';
@@ -149,7 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (activeId === selfId) {
         wordInput.style.display = 'block';
-        shareWordBtn.style.display = 'block';
+        shareWordBtn.style.display = state.word ? 'none' : 'block';
         revealWordBtn.style.display = 'block';
         wordInput.disabled = !!state.word;
         wordInput.value = state.word || '';
@@ -168,5 +174,50 @@ document.addEventListener('DOMContentLoaded', () => {
         wordDisplay.textContent = state.word ? `Word: ${state.word}` : 'Waiting for word...';
       }
     } else wordCard.style.display = 'none';
+
+    // --- Voting Panel & Vote Confirm ---
+    if (state.phase === 'voting') {
+      votePanel.style.display = 'block';
+      votePrompt.style.display = 'block';
+      voteButtons.innerHTML = '';
+      Object.entries(state.players).forEach(([id, player]) => {
+        if (id !== selfId && id !== activeId) {
+          const btn = document.createElement('button');
+          btn.textContent = player.name;
+          btn.dataset.id = id;
+          voteButtons.appendChild(btn);
+        }
+      });
+    } else votePanel.style.display = 'none';
+
+    if (selfId in state.votes) {
+      voteConfirm.style.display = 'block';
+      votedForSpan.textContent = state.players[state.votes[selfId]]?.name || '';
+      votePrompt.style.display = 'none';
+      voteButtons.innerHTML = '';
+    }
+
+    if (state.phase === 'wordEntry' || state.phase === 'finished') {
+      voteConfirm.style.display = 'none';
+    }
+
+    // --- Final Scores & Confetti ---
+    if (state.phase === 'finished') {
+      document.querySelector('#scoresContainer strong').textContent = 'Final Scores';
+      const maxScore = Math.max(...Object.values(state.scores));
+      scoresList.childNodes.forEach((child, index) => {
+        const playerId = Object.keys(state.scores)[index];
+        if (state.scores[playerId] === maxScore) {
+          child.classList.add('winner');
+        }
+      });
+      launchConfetti();
+    }
+  }
+
+  function launchConfetti() {
+    if (window.confetti) {
+      confetti({ particleCount: 200, spread: 70, origin: { y: 0.6 } });
+    }
   }
 });
