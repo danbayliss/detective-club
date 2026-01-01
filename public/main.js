@@ -1,229 +1,199 @@
-document.addEventListener('DOMContentLoaded', () => {
-  const socket = io();
-  let currentRoom = localStorage.getItem('room') || null;
-  let playerName = localStorage.getItem('name') || '';
+const socket = io();
 
-  // DOM elements
-  const lobby = document.getElementById('lobby');
-  const roomDiv = document.getElementById('room');
-  const startGamePanel = document.getElementById('startGamePanel');
-  const startBtn = document.getElementById('startBtn');
-  const waitingMsg = document.getElementById('waitingMsg');
-  const exitBtn = document.getElementById('exitBtn');
-  const createBtn = document.getElementById('createBtn');
-  const joinBtn = document.getElementById('joinBtn');
-  const nameInput = document.getElementById('nameInput');
-  const roomInput = document.getElementById('roomCodeInput');
-  const joinError = document.getElementById('joinError');
-  const roomCodeSpan = document.getElementById('roomCode');
-  const playersList = document.getElementById('playersList');
-  const scoresList = document.getElementById('scoresList');
+// --- Elements ---
+const lobby = document.getElementById('lobby');
+const roomDiv = document.getElementById('room');
+const nameInput = document.getElementById('nameInput');
+const createBtn = document.getElementById('createBtn');
+const joinBtn = document.getElementById('joinBtn');
+const roomCodeInput = document.getElementById('roomCodeInput');
+const joinError = document.getElementById('joinError');
+const roomCodeSpan = document.getElementById('roomCode');
+const exitBtn = document.getElementById('exitBtn');
 
-  const wordCard = document.getElementById('wordCard');
-  const wordDisplay = document.getElementById('wordDisplay');
-  const wordInput = document.getElementById('wordInput');
-  const shareWordBtn = document.getElementById('shareWordBtn');
-  const startVotingBtn = document.createElement('button');
-  startVotingBtn.id = 'startVotingBtn';
-  startVotingBtn.textContent = 'Start Voting';
-  startVotingBtn.style.display = 'none';
-  wordCard.appendChild(startVotingBtn);
+const startGamePanel = document.getElementById('startGamePanel');
+const startBtn = document.getElementById('startBtn');
+const waitingMsg = document.getElementById('waitingMsg');
 
-  const votePanel = document.getElementById('votePanel');
-  const voteButtons = document.getElementById('voteButtons');
-  const votePrompt = document.getElementById('votePrompt');
-  const voteConfirm = document.getElementById('voteConfirm');
-  const votedForSpan = document.getElementById('votedFor');
+const playersListDiv = document.getElementById('playersList');
+const scoresListDiv = document.getElementById('scoresList');
 
-  // Confetti
-  function launchConfetti() {
-    if (window.confetti) {
-      confetti({
-        particleCount: 200,
-        spread: 70,
-        origin: { y: 0.6 },
-      });
-    }
-  }
+const wordCard = document.getElementById('wordCard');
+const wordInput = document.getElementById('wordInput');
+const shareWordBtn = document.getElementById('shareWordBtn');
+const wordDisplay = document.getElementById('wordDisplay');
+const startVotingBtn = document.getElementById('startVotingBtn');
 
-  // --- Lobby ---
-  createBtn.addEventListener('click', () => {
-    const name = nameInput.value.trim();
-    if (!name) return alert('Enter your name');
-    playerName = name;
-    localStorage.setItem('name', name);
-    socket.emit('createRoom', { name });
-  });
+const votePanel = document.getElementById('votePanel');
+const voteButtonsDiv = document.getElementById('voteButtons');
+const voteConfirm = document.getElementById('voteConfirm');
+const votedForSpan = document.getElementById('votedFor');
 
-  joinBtn.addEventListener('click', () => {
-    const name = nameInput.value.trim();
-    const code = roomInput.value.trim().toUpperCase();
-    if (!name || !code) return alert('Enter name + room code');
-    playerName = name;
-    localStorage.setItem('name', name);
-    localStorage.setItem('room', code);
-    socket.emit('joinRoom', { name, code });
-  });
+const newGamePanel = document.getElementById('newGamePanel');
+const newGameBtn = document.getElementById('newGameBtn');
 
-  exitBtn.addEventListener('click', () => {
+const confettiCanvas = document.getElementById('confettiCanvas');
+
+let currentRoom = null;
+let myId = null;
+
+// --- Lobby buttons ---
+createBtn.onclick = () => {
+    if (!nameInput.value) return alert('Enter a name');
+    socket.emit('createRoom', { name: nameInput.value });
+};
+
+joinBtn.onclick = () => {
+    if (!nameInput.value || !roomCodeInput.value) return alert('Enter name and room code');
+    socket.emit('joinRoom', { name: nameInput.value, code: roomCodeInput.value.toUpperCase() });
+};
+
+// --- Exit room ---
+exitBtn.onclick = () => {
     if (currentRoom) socket.emit('exitRoom', { code: currentRoom });
-    localStorage.removeItem('room');
-    lobby.style.display = 'block';
-    roomDiv.style.display = 'none';
-  });
+};
 
-  startBtn.addEventListener('click', () => {
-    if (currentRoom) socket.emit('startGame', { code: currentRoom });
-  });
-
-  shareWordBtn.addEventListener('click', () => {
-    const word = wordInput.value.trim();
-    if (!word) return;
-    socket.emit('submitWord', { code: currentRoom, word });
-    wordDisplay.textContent = `Word shared: ${word}`;
-    wordInput.style.display = 'none';
-    shareWordBtn.style.display = 'none';
-    startVotingBtn.style.display = 'block';
-  });
-
-  startVotingBtn.addEventListener('click', () => {
-    if (currentRoom) socket.emit('startVoting', { code: currentRoom });
-    startVotingBtn.style.display = 'none';
-  });
-
-  votePanel.addEventListener('click', e => {
-    if (e.target.dataset.id && currentRoom) {
-      socket.emit('vote', { code: currentRoom, targetId: e.target.dataset.id });
-    }
-  });
-
-  // --- Socket events ---
-  socket.on('joinError', msg => (joinError.textContent = msg));
-  socket.on('roomJoined', ({ code, state }) => {
+// --- Socket events ---
+socket.on('roomJoined', ({ code, state }) => {
     currentRoom = code;
-    localStorage.setItem('room', code);
+    myId = socket.id;
     lobby.style.display = 'none';
-    roomDiv.style.display = 'block';
-    roomCodeSpan.textContent = code;
+    roomDiv.style.display = 'flex';
+    roomCodeSpan.innerText = code;
     renderRoom(state);
-  });
+});
 
-  socket.on('stateUpdate', state => {
-    currentRoom = state.code || currentRoom;
-    roomCodeSpan.textContent = state.code;
+socket.on('joinError', msg => {
+    joinError.innerText = msg;
+});
+
+socket.on('stateUpdate', state => {
     renderRoom(state);
-  });
+});
 
-  // --- Render Room ---
-  function renderRoom(state) {
-    const selfId = Object.keys(state.players).find(k => state.players[k].name === playerName);
-    const activeId = state.order[state.currentActiveIndex];
-    const creatorId = state.creatorId;
-    const selfIsCreator = selfId === creatorId;
+// --- Game buttons ---
+startBtn.onclick = () => socket.emit('startGame', { code: currentRoom });
 
-    // --- Players list ---
-    playersList.innerHTML = '';
-    Object.entries(state.players).forEach(([id, player]) => {
-      const div = document.createElement('div');
-      div.textContent = player.name;
-      if (id === selfId) div.classList.add('player-self');
-      if (id === activeId) div.classList.add('player-active');
-      playersList.appendChild(div);
+shareWordBtn.onclick = () => {
+    if (!wordInput.value) return alert('Enter a word');
+    socket.emit('submitWord', { code: currentRoom, word: wordInput.value });
+};
+
+startVotingBtn.onclick = () => {
+    socket.emit('startVoting', { code: currentRoom });
+};
+
+newGameBtn.onclick = () => {
+    // reset is handled server-side via stateUpdate
+    socket.emit('startGame', { code: currentRoom });
+};
+
+// --- Render Room ---
+function renderRoom(state) {
+    // --- Hide/show exit ---
+    exitBtn.classList.toggle('hidden', ['wordEntry','voting'].includes(state.phase));
+
+    // --- Start game panel ---
+    if (state.phase === 'lobby') {
+        startGamePanel.style.display = 'flex';
+        const playerCount = Object.keys(state.players).length;
+        if (myId === state.creatorId) {
+            if (playerCount >= 4) {
+                startBtn.style.display = 'inline-block';
+                waitingMsg.style.display = 'none';
+            } else {
+                startBtn.style.display = 'none';
+                waitingMsg.style.display = 'block';
+                waitingMsg.innerText = `Waiting for minimum number of players (4). Current: ${playerCount}`;
+            }
+        } else {
+            startBtn.style.display = 'none';
+            waitingMsg.style.display = 'block';
+            waitingMsg.innerText = 'Waiting for game to start...';
+        }
+    } else startGamePanel.style.display = 'none';
+
+    // --- Players List ---
+    playersListDiv.innerHTML = '';
+    Object.entries(state.players).forEach(([id, p]) => {
+        const div = document.createElement('div');
+        div.innerText = p.name;
+        if (id === myId) div.classList.add('player-self');
+        if (id === state.order[state.currentActiveIndex]) div.classList.add('player-active');
+        playersListDiv.appendChild(div);
     });
 
     // --- Scores ---
-    scoresList.innerHTML = '';
-    Object.entries(state.scores).forEach(([id, score]) => {
-      const div = document.createElement('div');
-      div.textContent = `${state.players[id]?.name || id}: ${score} VP`;
-      if (id === selfId) div.classList.add('self-score');
-      scoresList.appendChild(div);
+    scoresListDiv.innerHTML = '';
+    const maxScore = Math.max(...Object.values(state.scores || {0:0}));
+    Object.entries(state.scores || {}).forEach(([id, score]) => {
+        const div = document.createElement('div');
+        div.innerText = `${state.players[id]?.name || 'Unknown'}: ${score} VP`;
+        if (id === myId) div.classList.add('self-score');
+        if (score === maxScore && state.phase === 'finished') div.classList.add('winner');
+        scoresListDiv.appendChild(div);
     });
 
-    // --- Lobby Start Button / Waiting Messages ---
-    if (state.phase === 'lobby') {
-      if (selfIsCreator) {
-        if (Object.keys(state.players).length >= 4) {
-          startGamePanel.style.display = 'flex';
-          startBtn.style.display = 'block';
-          waitingMsg.style.display = 'none';
-        } else {
-          startGamePanel.style.display = 'flex';
-          startBtn.style.display = 'none';
-          waitingMsg.style.display = 'block';
-          waitingMsg.textContent = 'Waiting for minimum number of players...';
-        }
-      } else {
-        startGamePanel.style.display = 'none';
-        waitingMsg.style.display = 'block';
-        waitingMsg.textContent = 'Waiting for the game to start...';
-      }
-    } else {
-      startGamePanel.style.display = 'none';
-      waitingMsg.style.display = 'none';
-    }
-
-    // --- Word Entry / Sharing ---
+    // --- Word Card ---
     if (state.phase === 'wordEntry') {
-      wordCard.style.display = 'block';
-      votePanel.style.display = 'none';
-      voteConfirm.style.display = 'none';
-
-      if (activeId === selfId) {
-        wordInput.style.display = state.word ? 'none' : 'block';
-        shareWordBtn.style.display = state.word ? 'none' : 'block';
-        startVotingBtn.style.display = state.word ? 'block' : 'none';
-        wordDisplay.style.display = state.word ? 'block' : 'none';
-        wordDisplay.textContent = state.word ? `Word shared: ${state.word}` : '';
-      } else if (state.blindId === selfId) {
+        wordCard.style.display = 'flex';
+        wordInput.style.display = (myId === state.order[state.currentActiveIndex]) ? 'inline-block' : 'none';
+        shareWordBtn.style.display = (myId === state.order[state.currentActiveIndex] && !state.word) ? 'inline-block' : 'none';
+        startVotingBtn.style.display = 'none';
+        if (state.word) {
+            wordDisplay.innerText = (myId === state.blindId) ? 'You are the blind player' : 'Word: ' + state.word;
+        } else wordDisplay.innerText = '';
+        votePanel.style.display = 'none';
+        voteConfirm.style.display = 'none';
+        votedForSpan.innerText = '';
+    } else if (state.phase === 'voting') {
+        wordCard.style.display = 'flex';
         wordInput.style.display = 'none';
         shareWordBtn.style.display = 'none';
-        startVotingBtn.style.display = 'none';
-        wordDisplay.style.display = 'block';
-        wordDisplay.textContent = 'You are the blind player';
-      } else {
-        wordInput.style.display = 'none';
-        shareWordBtn.style.display = 'none';
-        startVotingBtn.style.display = 'none';
-        wordDisplay.style.display = 'block';
-        wordDisplay.textContent = state.word ? `Word: ${state.word}` : 'Waiting for word...';
-      }
-    } else {
-      wordCard.style.display = 'none';
-    }
+        startVotingBtn.style.display = (myId === state.order[state.currentActiveIndex]) ? 'inline-block' : 'none';
+        wordDisplay.innerText = (myId === state.blindId) ? 'You are the blind player' : 'Word: ' + state.word;
 
-    // --- Voting ---
-    if (state.phase === 'voting') {
-      votePanel.style.display = 'block';
-      votePrompt.style.display = 'block';
-      voteButtons.innerHTML = '';
-      Object.entries(state.players).forEach(([id, player]) => {
-        if (id !== selfId && id !== activeId) {
-          const btn = document.createElement('button');
-          btn.textContent = player.name;
-          btn.dataset.id = id;
-          voteButtons.appendChild(btn);
+        // Voting
+        votePanel.style.display = 'flex';
+        voteButtonsDiv.innerHTML = '';
+        voteConfirm.style.display = 'none';
+        votedForSpan.innerText = '';
+        if (!state.votes[myId]) {
+            Object.entries(state.players).forEach(([id, p]) => {
+                if (id !== myId && id !== state.order[state.currentActiveIndex]) {
+                    const btn = document.createElement('button');
+                    btn.innerText = p.name;
+                    btn.onclick = () => {
+                        socket.emit('vote', { code: currentRoom, targetId: id });
+                        voteButtonsDiv.innerHTML = '';
+                        voteConfirm.style.display = 'block';
+                        votedForSpan.innerText = p.name;
+                    };
+                    voteButtonsDiv.appendChild(btn);
+                }
+            });
+        } else {
+            voteConfirm.style.display = 'block';
+            votedForSpan.innerText = state.players[state.votes[myId]].name;
         }
-      });
-    } else votePanel.style.display = 'none';
-
-    // --- Vote confirmation ---
-    if (selfId in state.votes) {
-      voteConfirm.style.display = 'block';
-      votedForSpan.textContent = state.players[state.votes[selfId]]?.name || '';
-      votePrompt.style.display = 'none';
-      voteButtons.innerHTML = '';
-    } else voteConfirm.style.display = 'none';
-
-    // --- Final Scores ---
-    if (state.phase === 'finished') {
-      document.querySelector('#scoresContainer strong').textContent = 'Final Scores';
-      const maxScore = Math.max(...Object.values(state.scores));
-      scoresList.childNodes.forEach((child, index) => {
-        const playerId = Object.keys(state.scores)[index];
-        if (state.scores[playerId] === maxScore) child.classList.add('winner');
-      });
-      launchConfetti();
+    } else if (state.phase === 'finished') {
+        wordCard.style.display = 'none';
+        votePanel.style.display = 'none';
+        confetti.start = true;
+        launchConfetti();
+        newGamePanel.style.display = 'block';
+    } else {
+        wordCard.style.display = 'none';
+        votePanel.style.display = 'none';
+        newGamePanel.style.display = 'none';
     }
-  }
-});
+}
+
+// --- Confetti ---
+function launchConfetti() {
+    confetti({
+        particleCount: 150,
+        spread: 70,
+        origin: { y: 0.6 }
+    });
+}
