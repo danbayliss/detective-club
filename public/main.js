@@ -70,8 +70,8 @@ joinBtn.onclick = () => {
   const code = roomCodeInput.value.trim();
   if (!name || !code) return alert('Enter name and room code');
   myName = name;
-  socket.emit('joinRoom', { name, code });
-  savePlayerInfo();
+  socket.emit('joinRoom', { name, code }); // <-- emits joinRoom event
+  savePlayerInfo(); // saves to localStorage
 };
 
 // EXIT ROOM
