@@ -1,66 +1,95 @@
 body {
-  font-family: Arial, sans-serif;
-  background: #f0f4f8;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(120deg, #fdfbfb, #ebedee);
   margin: 0;
   padding: 0;
 }
 
-#game {
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 20px;
+.panel {
+  background: white;
+  padding: 15px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  margin: 15px auto;
+  max-width: 500px;
+  transition: all 0.4s ease;
 }
 
-h2 {
+h1, h2 {
   text-align: center;
+  color: #333;
 }
 
 input, button {
   padding: 10px;
   margin: 5px;
   font-size: 16px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
 }
 
 button {
   cursor: pointer;
+  transition: all 0.2s ease;
+  background: #4f46e5;
+  color: white;
+  border: none;
 }
 
-.players-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
+button:hover {
+  background: #3730a3;
 }
 
-.players-grid div {
-  background: #e0e7ff;
-  padding: 10px;
-  border-radius: 6px;
-  min-width: 100px;
-  text-align: center;
-  transition: all 0.3s;
-}
-
-.panel {
-  background: #ffffff;
-  margin-top: 20px;
-  padding: 15px;
-  border-radius: 8px;
-  transition: all 0.3s;
-}
-
-#error {
+.error {
   color: red;
+  text-align: center;
 }
 
-#scoresList div {
-  margin: 5px 0;
+.game-container {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.card {
+  background: #f9f9f9;
+  padding: 10px;
+  border-radius: 12px;
+  min-width: 150px;
+  transition: all 0.3s;
+}
+
+#playersList div, #scoresList div {
+  padding: 8px;
+  margin: 4px 0;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+}
+
+.player-self {
+  background: #dbeafe;
+  font-weight: bold;
+}
+
+.player-active {
+  border: 2px solid #4f46e5;
+  font-weight: bold;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 500px;
+  margin: 0 auto;
 }
 
 canvas#confetti {
   position: fixed;
   pointer-events: none;
-  top: 0;
-  left: 0;
+  top:0;
+  left:0;
   width: 100%;
   height: 100%;
 }
