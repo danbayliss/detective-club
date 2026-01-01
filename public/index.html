@@ -1,29 +1,22 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Detective Club</title>
-<link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <title>Detective Club</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<h1>Detective Club</h1>
-
 <div id="game">
-
-  <!-- Lobby -->
   <div id="lobby">
+    <h2>Detective Club</h2>
     <input type="text" id="nameInput" placeholder="Enter your name">
+    <input type="text" id="roomCodeInput" placeholder="Room code (to join)">
     <button id="createBtn">Create Room</button>
-    <br>
-    <input type="text" id="roomCodeInput" placeholder="Room code">
     <button id="joinBtn">Join Room</button>
   </div>
 
-  <!-- Room -->
   <div id="room" style="display:none;">
     <h2>Room Code: <span id="roomCode"></span></h2>
-
     <div id="playersContainer">
       <strong>Players:</strong>
       <div id="playersList" class="players-grid"></div>
@@ -34,27 +27,28 @@
       <div id="scoresList"></div>
     </div>
 
-    <div id="activePlayerPanel" class="panel" style="display:none;"></div>
+    <div id="activePlayerPanel" class="panel"></div>
 
-    <div id="wordInputPanel" style="display:none;">
-      <input type="text" id="wordInput" placeholder="Enter your word">
+    <div id="wordInputPanel" class="panel">
+      <input type="text" id="wordInput" placeholder="Enter word">
       <button id="submitWordBtn">Submit Word</button>
-      <button id="revealWordBtn" style="display:none;">Reveal Word to Blind Player</button>
+      <button id="revealWordBtn">Reveal to Blind Player</button>
     </div>
 
-    <div id="votePanel" style="display:none;">
-      <strong>Vote who is the blind player:</strong>
+    <div id="votePanel" class="panel">
+      <p>Vote who is the blind player:</p>
       <div id="voteButtons"></div>
     </div>
 
-    <div id="finalResults" class="panel" style="display:none;"></div>
+    <div id="finalResults" class="panel"></div>
 
     <button id="startBtn">Start Game</button>
   </div>
-
 </div>
 
+<canvas id="confetti"></canvas>
 <script src="/socket.io/socket.io.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
 <script src="main.js"></script>
 </body>
 </html>
