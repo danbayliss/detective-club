@@ -21,7 +21,7 @@
     <div id="joinError" class="errorText"></div>
   </div>
 
-  <!-- Room -->
+  <!-- Game Room -->
   <div id="room" style="display:none;">
     <!-- Room Header -->
     <div id="roomHeader">
@@ -29,46 +29,50 @@
       <button id="exitBtn">Exit Room</button>
     </div>
 
-    <!-- Start Game / Waiting -->
-    <div id="startGamePanel">
-      <button id="startBtn">Start Game</button>
-      <div id="waitingMsg"></div>
+    <!-- Main Container -->
+    <div id="mainContainer">
+      <!-- Left Column: Players List -->
+      <div id="playersColumn">
+        <div class="panelTitle">Players</div>
+        <div id="playersList"></div>
+      </div>
+
+      <!-- Right Column: Scores -->
+      <div id="scoresColumn">
+        <div class="panelTitle">Scores</div>
+        <div id="scoresList"></div>
+      </div>
     </div>
 
-    <!-- Players List -->
-    <div id="playersList" class="fadeIn"></div>
+    <!-- Center Panel for Word / Voting / Start -->
+    <div id="centerPanel">
+      <div id="startGamePanel">
+        <button id="startBtn">Start Game</button>
+        <div id="waitingMsg"></div>
+      </div>
 
-    <!-- Scores -->
-    <div id="scoresContainer">
-      <strong>Scores</strong>
-      <div id="scoresList"></div>
-    </div>
+      <div id="wordCard" class="panelCard">
+        <input type="text" id="wordInput" placeholder="Enter the word">
+        <button id="shareWordBtn">Share Word</button>
+        <div id="wordDisplay"></div>
+        <button id="startVotingBtn" style="display:none;">Start Voting</button>
+      </div>
 
-    <!-- Word Card -->
-    <div id="wordCard" class="fadeIn">
-      <input type="text" id="wordInput" placeholder="Enter the word">
-      <button id="shareWordBtn">Share Word</button>
-      <div id="wordDisplay"></div>
-      <button id="startVotingBtn" style="display:none;">Start Voting</button>
-    </div>
+      <div id="votePanel" class="panelCard">
+        <div id="votePrompt">Vote who is the blind player:</div>
+        <div id="voteButtons"></div>
+        <div id="voteConfirm">You voted for: <span id="votedFor"></span></div>
+      </div>
 
-    <!-- Voting Panel -->
-    <div id="votePanel" class="fadeIn">
-      <div id="votePrompt">Vote who is the blind player:</div>
-      <div id="voteButtons"></div>
-      <div id="voteConfirm">You voted for: <span id="votedFor"></span></div>
-    </div>
-
-    <!-- Start New Game -->
-    <div id="newGamePanel" style="display:none; margin-top: 20px;">
-      <button id="newGameBtn">Start New Game</button>
+      <div id="newGamePanel" style="display:none;">
+        <button id="newGameBtn">Start New Game</button>
+      </div>
     </div>
   </div>
 
-  <!-- Confetti -->
+  <!-- Confetti Canvas -->
   <canvas id="confettiCanvas"></canvas>
 
-  <!-- Scripts -->
   <script src="/socket.io/socket.io.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
   <script src="main.js"></script>
