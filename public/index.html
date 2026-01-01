@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>Detective Club</h1>
+  <h1 id="title">Detective Club</h1>
 
   <!-- Lobby -->
   <div id="lobby">
@@ -47,6 +47,7 @@
       <input type="text" id="wordInput" placeholder="Enter the word">
       <button id="shareWordBtn">Share Word</button>
       <div id="wordDisplay"></div>
+      <button id="startVotingBtn" style="display:none;">Start Voting</button>
     </div>
 
     <!-- Voting Panel -->
@@ -55,12 +56,16 @@
       <div id="voteButtons"></div>
       <div id="voteConfirm">You voted for: <span id="votedFor"></span></div>
     </div>
+
+    <!-- Start New Game -->
+    <div id="newGamePanel" style="display:none; margin-top: 20px;">
+      <button id="newGameBtn">Start New Game</button>
+    </div>
   </div>
 
   <!-- Confetti Canvas -->
   <canvas id="confettiCanvas"></canvas>
 
-  <!-- Scripts -->
   <script src="/socket.io/socket.io.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
   <script src="main.js"></script>
