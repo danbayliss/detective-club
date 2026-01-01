@@ -12,32 +12,84 @@ const startBtn = document.getElementById('startBtn');
 
 let currentRoom = null;
 let myName = '';
+let myId = null;
 
-// Create Room
+// On connect
+socket.on('connect', () => {
+  myId = socket.id;
+  const storedRoom = localStorage.getItem('currentRoom');
+  const storedName = localStorage.getItem('playerName');
+  if (storedRoom && storedName) {
+    myName = storedName;
+    socket.emit('rejoinRoom', { code: storedRoom, name: storedName });
+  }
+});
+
+function savePlayerInfo() {
+  localStorage.setItem('currentRoom', currentRoom);
+  localStorage.setItem('playerName', myName);
+}
+
+// Create / Join
 createBtn.onclick = () => {
   const name = nameInput.value.trim();
   if (!name) return alert('Enter name');
   myName = name;
   socket.emit('createRoom', { name });
+  savePlayerInfo();
 };
 
-// Join Room
 joinBtn.onclick = () => {
   const name = nameInput.value.trim();
   const code = roomCodeInput.value.trim();
   if (!name || !code) return alert('Enter name and room code');
   myName = name;
   socket.emit('joinRoom', { name, code });
+  savePlayerInfo();
 };
 
-// Start Game (only ask for secret word)
+// Exit room button
+const exitBtn = document.createElement('button');
+exitBtn.textContent = 'Exit Room';
+exitBtn.onclick = () => {
+  socket.emit('exitRoom', { code: currentRoom });
+  lobby.style.display = 'block';
+  roomDiv.style.display = 'none';
+  currentRoom = null;
+  localStorage.removeItem('currentRoom');
+  localStorage.removeItem('playerName');
+};
+roomDiv.prepend(exitBtn);
+
+// Start game (host picks secret word)
 startBtn.onclick = () => {
   const secretWord = prompt('Enter the secret word:');
   if (!secretWord) return alert('Secret word is required');
-  socket.emit('startGame', { code: currentRoom, secretWord });
+  socket.emit('startGame', { code: currentRoom, secretWord, pickerId: myId });
 };
 
-// Server confirms join
+// Reveal word (detective)
+function revealWord() {
+  socket.emit('revealWord', { code: currentRoom });
+}
+
+// Role assignment
+socket.on('yourRole', ({ isDetective, isBlind, word }) => {
+  if (isDetective) {
+    alert('You are the Detective! Click reveal when ready.');
+  } else if (isBlind) {
+    alert('You are the blind player — you don’t know the word.');
+  } else {
+    alert(`Your word is: ${word}`);
+  }
+});
+
+// Word revealed
+socket.on('wordRevealed', (word) => {
+  alert(`The secret word is: ${word}`);
+});
+
+// Room joined / rejoined
 socket.on('roomJoined', ({ code, state }) => {
   currentRoom = code;
   roomCodeSpan.textContent = code;
@@ -46,32 +98,19 @@ socket.on('roomJoined', ({ code, state }) => {
   updatePlayers(state);
 });
 
-// Update room state
 socket.on('stateUpdate', state => {
   updatePlayers(state);
 });
 
-// Show roles
-socket.on('yourRole', ({ isDetective, isBlind, word }) => {
-  let msg = '';
-  if (isDetective) {
-    msg = 'You are the Detective!';
-  } else if (isBlind) {
-    msg = 'You are the blind player — you don’t know the word.';
-  } else {
-    msg = `Your word is: ${word}`;
-  }
-  alert(msg);
+socket.on('rejoined', (state) => {
+  lobby.style.display = 'none';
+  roomDiv.style.display = 'block';
+  updatePlayers(state);
 });
 
 // Update player cards
 function updatePlayers(state) {
-  if (roomDiv.style.display === 'none') {
-    lobby.style.display = 'none';
-    roomDiv.style.display = 'block';
-    roomCodeSpan.textContent = currentRoom;
-  }
-
+  if (!currentRoom) currentRoom = Object.keys(state.players).includes(myId) ? currentRoom : null;
   playersList.innerHTML = '';
   Object.values(state.players).forEach(p => {
     const div = document.createElement('div');
