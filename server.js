@@ -1,148 +1,148 @@
 const express = require('express');
-const path = require('path');
+const http = require('http');
+const { Server } = require('socket.io');
 const app = express();
-const http = require('http').createServer(app);
-const io = require('socket.io')(http);
-const PORT = process.env.PORT || 3000;
+const server = http.createServer(app);
+const io = new Server(server);
 
-// Serve public folder
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static('public'));
 
-// Serve index.html
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
+const rooms = {}; // roomCode -> state
 
-// Catch-all for SPA routing
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-// --- Game logic ---
-const rooms = {};
-
-function generateRoomCode() {
-  return Math.random().toString(36).substring(2, 7).toUpperCase();
-}
-
-function chooseRandom(players, exclude=[]) {
-  const keys = Object.keys(players).filter(k => !exclude.includes(k));
-  if (keys.length === 0) return null;
-  return keys[Math.floor(Math.random() * keys.length)];
-}
-
-io.on('connection', socket => {
-  console.log('New connection:', socket.id);
+io.on('connection', (socket) => {
+  console.log('User connected:', socket.id);
 
   socket.on('createRoom', ({ name }) => {
-    const code = generateRoomCode();
-    rooms[code] = {
+    const roomCode = Math.random().toString(36).substring(2, 7).toUpperCase();
+    rooms[roomCode] = {
+      code: roomCode,
+      creatorId: socket.id,
       players: { [socket.id]: { name } },
       scores: { [socket.id]: 0 },
-      creatorId: socket.id,
-      phase: 'lobby',
-      order: [socket.id],
+      order: [],
       currentActiveIndex: 0,
+      phase: 'lobby',
+      votes: {},
       blindId: null,
-      word: '',
-      votes: {}
+      word: null
     };
-    socket.join(code);
-    socket.emit('roomJoined', { code, state: { ...rooms[code], code } });
+    socket.join(roomCode);
+    io.to(socket.id).emit('roomJoined', { code: roomCode, state: rooms[roomCode] });
+    io.to(roomCode).emit('stateUpdate', rooms[roomCode]);
   });
 
   socket.on('joinRoom', ({ name, code }) => {
-    if (!rooms[code]) {
-      socket.emit('joinError', 'Room not found');
-      return;
+    const room = rooms[code];
+    if (!room) return io.to(socket.id).emit('joinError', 'Room not found');
+    // Prevent duplicate names
+    if (Object.values(room.players).some(p => p.name === name)) {
+      return io.to(socket.id).emit('joinError', 'Name already taken');
     }
 
-    const nameExists = Object.values(rooms[code].players).some(p => p.name === name);
-    if (nameExists) {
-      socket.emit('joinError', 'Name already taken');
-      return;
-    }
-
-    rooms[code].players[socket.id] = { name };
-    rooms[code].scores[socket.id] = 0;
-    rooms[code].order.push(socket.id);
+    room.players[socket.id] = { name };
+    room.scores[socket.id] = 0;
     socket.join(code);
-
-    io.to(code).emit('stateUpdate', { ...rooms[code], code });
-    socket.emit('roomJoined', { code, state: { ...rooms[code], code } });
-  });
-
-  socket.on('exitRoom', ({ code }) => {
-    if (!rooms[code]) return;
-    delete rooms[code].players[socket.id];
-    delete rooms[code].scores[socket.id];
-    const idx = rooms[code].order.indexOf(socket.id);
-    if (idx !== -1) rooms[code].order.splice(idx, 1);
-    io.to(code).emit('stateUpdate', { ...rooms[code], code });
+    io.to(socket.id).emit('roomJoined', { code, state: room });
+    io.to(code).emit('stateUpdate', room);
   });
 
   socket.on('startGame', ({ code }) => {
     const room = rooms[code];
-    if (!room) return;
-    room.currentActiveIndex = 0;
+    if (!room || room.phase !== 'lobby') return;
     room.phase = 'wordEntry';
-    room.word = '';
-    room.blindId = chooseRandom(room.players, [room.order[room.currentActiveIndex]]);
-    room.votes = {};
-    io.to(code).emit('stateUpdate', { ...room, code });
+    room.order = Object.keys(room.players);
+    room.currentActiveIndex = 0;
+
+    // Pick a random blind player (not the first active)
+    const blindCandidates = room.order.filter(id => id !== room.order[0]);
+    room.blindId = blindCandidates[Math.floor(Math.random() * blindCandidates.length)];
+    room.word = null;
+
+    io.to(code).emit('stateUpdate', room);
   });
 
+  // New: Active player submits word
   socket.on('submitWord', ({ code, word }) => {
     const room = rooms[code];
     if (!room) return;
+    const activeId = room.order[room.currentActiveIndex];
+    if (socket.id !== activeId) return;
+
     room.word = word;
-    room.phase = 'voting';
-    room.votes = {};
-    io.to(code).emit('stateUpdate', { ...room, code });
+    room.phase = 'wordEntry'; // stay in wordEntry until reveal
+    io.to(code).emit('stateUpdate', room);
   });
 
+  // Reveal word, go to voting
   socket.on('revealWord', ({ code }) => {
     const room = rooms[code];
     if (!room) return;
-    room.revealed = true;
-    io.to(code).emit('stateUpdate', { ...room, code });
+    const activeId = room.order[room.currentActiveIndex];
+    if (socket.id !== activeId) return;
+
+    room.phase = 'voting';
+    room.votes = {}; // reset votes
+    io.to(code).emit('stateUpdate', room);
   });
 
+  // Voting
   socket.on('vote', ({ code, targetId }) => {
     const room = rooms[code];
-    if (!room) return;
+    if (!room || room.phase !== 'voting') return;
+    const activeId = room.order[room.currentActiveIndex];
+    if (targetId === activeId) return; // cannot vote for active
+
     room.votes[socket.id] = targetId;
 
-    if (Object.keys(room.votes).length === Object.keys(room.players).length) {
-      // Calculate scores
-      const voteCounts = {};
-      Object.values(room.votes).forEach(v => voteCounts[v] = (voteCounts[v] || 0) + 1);
-      const blindVotes = voteCounts[room.blindId] || 0;
+    // Check if all non-active players voted
+    const nonActivePlayers = Object.keys(room.players).filter(id => id !== activeId);
+    if (nonActivePlayers.every(id => room.votes[id])) {
+      // Calculate points
+      const blindId = room.blindId;
+      const votesAgainstBlind = Object.values(room.votes).filter(v => v === blindId).length;
 
-      Object.entries(room.votes).forEach(([playerId, votedId]) => {
-        if (votedId === room.blindId) room.scores[playerId] += 3;
+      if (votesAgainstBlind <= 1) {
+        room.scores[blindId] += 5;
+      }
+      Object.entries(room.votes).forEach(([voterId, votedId]) => {
+        if (votedId === blindId) room.scores[voterId] += 3;
       });
 
-      if (blindVotes <= 1) room.scores[room.blindId] += 5;
-
-      // Move to next active
+      // Move to next active player
       room.currentActiveIndex++;
       if (room.currentActiveIndex >= room.order.length) {
         room.phase = 'finished';
       } else {
         room.phase = 'wordEntry';
-        room.word = '';
-        room.blindId = chooseRandom(room.players, [room.order[room.currentActiveIndex]]);
-        room.votes = {};
+        // Pick a new blind player (not active)
+        const newActive = room.order[room.currentActiveIndex];
+        const blindCandidates = room.order.filter(id => id !== newActive);
+        room.blindId = blindCandidates[Math.floor(Math.random() * blindCandidates.length)];
+        room.word = null;
       }
     }
 
-    io.to(code).emit('stateUpdate', { ...room, code });
+    io.to(code).emit('stateUpdate', room);
+  });
+
+  socket.on('exitRoom', ({ code }) => {
+    const room = rooms[code];
+    if (!room) return;
+    delete room.players[socket.id];
+    delete room.scores[socket.id];
+    socket.leave(code);
+    io.to(code).emit('stateUpdate', room);
   });
 
   socket.on('disconnect', () => {
-    console.log('Disconnected:', socket.id);
+    Object.values(rooms).forEach(room => {
+      if (room.players[socket.id]) {
+        delete room.players[socket.id];
+        delete room.scores[socket.id];
+        io.to(room.code).emit('stateUpdate', room);
+      }
+    });
   });
 });
 
-http.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+server.listen(3000, () => console.log('Server running on port 3000'));
