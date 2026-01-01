@@ -30,14 +30,14 @@ joinBtn.onclick = () => {
   socket.emit('joinRoom', { name, code });
 };
 
-// Start Game (always enabled)
+// Start Game (only ask for secret word)
 startBtn.onclick = () => {
   const secretWord = prompt('Enter the secret word:');
-  const fakeWord = prompt('Enter the fake word:');
-  socket.emit('startGame', { code: currentRoom, secretWord, fakeWord });
+  if (!secretWord) return alert('Secret word is required');
+  socket.emit('startGame', { code: currentRoom, secretWord });
 };
 
-// When server confirms you joined a room
+// Server confirms join
 socket.on('roomJoined', ({ code, state }) => {
   currentRoom = code;
   roomCodeSpan.textContent = code;
@@ -46,12 +46,25 @@ socket.on('roomJoined', ({ code, state }) => {
   updatePlayers(state);
 });
 
-// Whenever server sends updated room state
+// Update room state
 socket.on('stateUpdate', state => {
   updatePlayers(state);
 });
 
-// Update player list in the UI
+// Show roles
+socket.on('yourRole', ({ isDetective, isBlind, word }) => {
+  let msg = '';
+  if (isDetective) {
+    msg = 'You are the Detective!';
+  } else if (isBlind) {
+    msg = 'You are the blind player — you don’t know the word.';
+  } else {
+    msg = `Your word is: ${word}`;
+  }
+  alert(msg);
+});
+
+// Update player cards
 function updatePlayers(state) {
   if (roomDiv.style.display === 'none') {
     lobby.style.display = 'none';
@@ -59,10 +72,7 @@ function updatePlayers(state) {
     roomCodeSpan.textContent = currentRoom;
   }
 
-  // Clear list
   playersList.innerHTML = '';
-
-  // Add each player as a card
   Object.values(state.players).forEach(p => {
     const div = document.createElement('div');
     div.classList.add('player-card');
