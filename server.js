@@ -47,13 +47,23 @@ io.on('connection', socket => {
     socket.emit('roomJoined', { code, state: rooms[code] });
   });
 
-  socket.on('joinRoom', ({ code, name }) => {
-    if (!rooms[code]) return;
-    rooms[code].players[socket.id] = { name };
-    rooms[code].scores[socket.id] = 0;
-    socket.join(code);
-    io.to(code).emit('stateUpdate', rooms[code]);
-  });
+socket.on('joinRoom', ({ code, name }) => {
+  const room = rooms[code];
+  if (!room) return;
+
+  // Add player
+  room.players[socket.id] = { name };
+  if (!room.scores[socket.id]) room.scores[socket.id] = 0;
+
+  socket.join(code);
+
+  // Send confirmation to joining player
+  socket.emit('roomJoined', { code, state: room });
+
+  // Update everyone else in the room
+  io.to(code).emit('stateUpdate', room);
+});
+
 
   // Rejoin after refresh
   socket.on('rejoinRoom', ({ code, name }) => {
@@ -122,3 +132,4 @@ io.on('connection', socket => {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
