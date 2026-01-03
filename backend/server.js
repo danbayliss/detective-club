@@ -1,14 +1,37 @@
 import express from 'express';
 import http from 'http';
 import { Server } from 'socket.io';
-import { GameManager } from './gameManager.js';
+import { fileURLToPath } from 'url';
+import path from 'path';
 import cors from 'cors';
+import { GameManager } from './gameManager.js';
 
+// Needed to resolve __dirname in ES Modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Initialize Express
 const app = express();
 app.use(cors());
 
+// Serve static files from frontend build
+app.use(express.static(path.join(__dirname, '../frontend/dist')));
+
+// Catch-all to serve index.html for React Router
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
+});
+
+// Create HTTP server
 const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: '*' } });
+
+// Initialize Socket.io
+const io = new Server(server, {
+  cors: {
+    origin: '*',
+    methods: ['GET', 'POST'],
+  },
+});
 
 const gameManager = new GameManager();
 
@@ -62,5 +85,6 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => gameManager.removePlayer(socket.id));
 });
 
+// Start server
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
