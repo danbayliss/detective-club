@@ -1,0 +1,29 @@
+name: Build React Frontend
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      - name: Install server dependencies
+        run: npm install
+        working-directory: ./server
+
+      - name: Install client dependencies
+        run: npm install
+        working-directory: ./server/client
+
+      - name: Build React frontend
+        run: npm run build
+        working-directory: ./server/client
