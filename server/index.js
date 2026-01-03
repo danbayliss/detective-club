@@ -1,56 +1,54 @@
-import express from "express";
-import http from "http";
-import { Server } from "socket.io";
-import { nanoid } from "nanoid";
-import path from "path";
-import { fileURLToPath } from "url";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const express = require("express");
+const http = require("http");
+const { Server } = require("socket.io");
+const { nanoid } = require("nanoid");
+const path = require("path");
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-const rooms = {};
+app.use(express.json());
 
 // Serve React frontend
-app.use(express.static(path.join(__dirname, "client", "build")));
+app.use(express.static(path.join(__dirname, "../client/build")));
 app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "client", "build", "index.html"));
+  res.sendFile(path.join(__dirname, "../client/build", "index.html"));
 });
 
-// Socket.io logic (create/join room, share word, voting, scoring)
-io.on("connection", (socket) => {
-  console.log("User connected", socket.id);
+// Rooms storage
+const rooms = {};
 
-  socket.on("createRoom", ({ name }) => {
+io.on("connection", (socket) => {
+  console.log("Connected:", socket.id);
+
+  socket.on("createRoom", ({ name }, callback) => {
     const roomCode = nanoid(6).toUpperCase();
     rooms[roomCode] = {
       players: [{ id: socket.id, name, score: 0 }],
-      host: socket.id,
       activePlayerIndex: 0,
-      blindPlayer: null,
-      votes: {},
-      state: "waiting"
+      blindPlayerId: null,
     };
     socket.join(roomCode);
-    socket.emit("roomJoined", { roomCode, host: true, players: rooms[roomCode].players });
+    socket.emit("roomJoined", { roomCode, players: rooms[roomCode].players });
+    io.to(roomCode).emit("updatePlayers", rooms[roomCode].players);
+    callback({ roomCode });
   });
 
-  socket.on("joinRoom", ({ name, roomCode }) => {
+  socket.on("joinRoom", ({ name, roomCode }, callback) => {
     const room = rooms[roomCode];
-    if (!room) return socket.emit("errorMessage", "Room does not exist");
-    if (room.players.some(p => p.name === name)) return socket.emit("errorMessage", "Name already exists");
+    if (!room) return callback({ error: "Room not found" });
+    if (room.players.find((p) => p.name === name)) return callback({ error: "Name already exists" });
+
     room.players.push({ id: socket.id, name, score: 0 });
     socket.join(roomCode);
     io.to(roomCode).emit("updatePlayers", room.players);
+    callback({ roomCode, players: room.players });
   });
 
   socket.on("startGame", ({ roomCode }) => {
     const room = rooms[roomCode];
     if (!room) return;
-    room.state = "active";
     const activePlayer = room.players[room.activePlayerIndex];
     io.to(roomCode).emit("gameStarted", { activePlayer });
   });
@@ -59,24 +57,26 @@ io.on("connection", (socket) => {
     const room = rooms[roomCode];
     if (!room) return;
     const activePlayer = room.players[room.activePlayerIndex];
-    const blindPlayer = room.players[Math.floor(Math.random() * room.players.length)];
-    room.blindPlayer = blindPlayer;
-    io.to(roomCode).emit("wordShared", {
-      word,
-      blindPlayerId: blindPlayer.id,
-      activePlayerId: activePlayer.id
-    });
+    const blindCandidates = room.players.filter((p) => p.id !== activePlayer.id);
+    const blindPlayer = blindCandidates[Math.floor(Math.random() * blindCandidates.length)];
+    room.blindPlayerId = blindPlayer.id;
+    io.to(roomCode).emit("wordShared", { word, blindPlayerId: blindPlayer.id, activePlayerId: activePlayer.id });
   });
 
   socket.on("startVoting", ({ roomCode }) => {
     const room = rooms[roomCode];
-    io.to(roomCode).emit("votingStarted", room.players.filter(p => p.id !== room.players[room.activePlayerIndex].id));
+    if (!room) return;
+    room.votes = {};
+    io.to(roomCode).emit("votingStarted", room.players);
   });
 
   socket.on("submitVote", ({ roomCode, votedPlayerId }) => {
     const room = rooms[roomCode];
+    if (!room) return;
+    room.votes = room.votes || {};
     room.votes[socket.id] = votedPlayerId;
     io.to(roomCode).emit("updateVotes", room.votes);
+
     if (Object.keys(room.votes).length === room.players.length - 1) {
       io.to(roomCode).emit("allVotesIn");
     }
@@ -84,37 +84,29 @@ io.on("connection", (socket) => {
 
   socket.on("endVote", ({ roomCode }) => {
     const room = rooms[roomCode];
-    const blindId = room.blindPlayer.id;
-    const blindVotes = Object.values(room.votes).filter(v => v === blindId).length;
+    if (!room) return;
+    const blindPlayer = room.players.find((p) => p.id === room.blindPlayerId);
+    const activePlayer = room.players[room.activePlayerIndex];
+    const voteCounts = Object.values(room.votes).filter((id) => id === blindPlayer.id).length;
 
-    if (blindVotes <= 1) {
-      const blindPlayer = room.players.find(p => p.id === blindId);
-      if (blindPlayer) blindPlayer.score += 5;
-    }
+    if (voteCounts <= 1) blindPlayer.score += 5;
+    if (voteCounts > 0 && Object.values(room.votes).includes(room.blindPlayerId)) activePlayer.score += 3;
 
-    for (const [voterId, votedId] of Object.entries(room.votes)) {
-      if (votedId === blindId) {
-        const player = room.players.find(p => p.id === voterId);
-        if (player) player.score += 3;
-      }
-    }
-
-    room.votes = {};
     room.activePlayerIndex = (room.activePlayerIndex + 1) % room.players.length;
-    io.to(roomCode).emit("voteEnded", {
-      players: room.players,
-      nextActive: room.players[room.activePlayerIndex]
-    });
+    const nextActive = room.players[room.activePlayerIndex];
+
+    io.to(roomCode).emit("voteEnded", { players: room.players, nextActive });
   });
 
   socket.on("disconnect", () => {
-    for (const roomCode in rooms) {
-      const room = rooms[roomCode];
-      room.players = room.players.filter(p => p.id !== socket.id);
-      if (!room.players.length) delete rooms[roomCode];
-      else io.to(roomCode).emit("updatePlayers", room.players);
-    }
+    Object.keys(rooms).forEach((code) => {
+      const room = rooms[code];
+      if (!room) return;
+      room.players = room.players.filter((p) => p.id !== socket.id);
+      io.to(code).emit("updatePlayers", room.players);
+    });
   });
 });
 
-server.listen(process.env.PORT || 3000, () => console.log("Server running"));
+const PORT = process.env.PORT || 5000;
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
