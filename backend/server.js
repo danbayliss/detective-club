@@ -2,12 +2,13 @@ import express from 'express';
 import http from 'http';
 import { Server } from 'socket.io';
 import { GameManager } from './gameManager.js';
+import cors from 'cors';
 
 const app = express();
+app.use(cors());
+
 const server = http.createServer(app);
-const io = new Server(server, {
-  cors: { origin: '*' }
-});
+const io = new Server(server, { cors: { origin: '*' } });
 
 const gameManager = new GameManager();
 
@@ -25,9 +26,8 @@ io.on('connection', (socket) => {
 
   socket.on('joinRoom', ({ name, roomCode }) => {
     const result = gameManager.joinRoom(name, roomCode, socket.id);
-    if (result.error) {
-      io.to(socket.id).emit('errorMessage', result.error);
-    } else {
+    if (result.error) io.to(socket.id).emit('errorMessage', result.error);
+    else {
       socket.join(roomCode);
       io.to(roomCode).emit('updatePlayers', gameManager.getPlayers(roomCode));
       io.to(socket.id).emit('joinedRoom', { roomCode, player: name });
@@ -59,10 +59,8 @@ io.on('connection', (socket) => {
     io.to(roomCode).emit('voteEnded', gameManager.getGameState(roomCode));
   });
 
-  socket.on('disconnect', () => {
-    gameManager.removePlayer(socket.id);
-    io.emit('updateRooms', gameManager.getAllRooms());
-  });
+  socket.on('disconnect', () => gameManager.removePlayer(socket.id));
 });
 
-server.listen(process.env.PORT || 5000, () => console.log('Server running on port 5000'));
+const PORT = process.env.PORT || 5000;
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
