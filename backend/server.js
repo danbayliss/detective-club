@@ -6,35 +6,33 @@ import path from 'path';
 import cors from 'cors';
 import { GameManager } from './gameManager.js';
 
-// Needed to resolve __dirname in ES Modules
+// Fix __dirname in ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Initialize Express
 const app = express();
 app.use(cors());
 
-// Serve static files from frontend build
-app.use(express.static(path.join(__dirname, '../frontend/dist')));
+// Serve React frontend build
+const frontendPath = path.join(__dirname, '../frontend/dist');
+app.use(express.static(frontendPath));
 
-// Catch-all to serve index.html for React Router
+// Catch-all: serve index.html for React Router
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
+  res.sendFile(path.join(frontendPath, 'index.html'));
 });
 
 // Create HTTP server
 const server = http.createServer(app);
 
-// Initialize Socket.io
+// Socket.io
 const io = new Server(server, {
-  cors: {
-    origin: '*',
-    methods: ['GET', 'POST'],
-  },
+  cors: { origin: '*' }
 });
 
 const gameManager = new GameManager();
 
+// --- Socket.io events (same as before) ---
 io.on('connection', (socket) => {
   console.log('New connection:', socket.id);
 
