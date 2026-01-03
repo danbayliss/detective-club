@@ -19,17 +19,25 @@ export default function GameRoom({ user, roomCode }) {
 
   // --- Socket Events ---
   useEffect(() => {
-    socket.on("updatePlayers", setPlayers);
+    socket.on("updatePlayers", (playersList) => {
+      if (Array.isArray(playersList)) setPlayers(playersList);
+    });
+
+    socket.on("roomJoined", ({ players }) => {
+      if (Array.isArray(players)) setPlayers(players);
+    });
+
     socket.on("gameStarted", ({ activePlayer }) => {
       setActivePlayer(activePlayer);
       setGameState("active");
-      setMessages([`Game started. ${activePlayer.name} is active player.`]);
+      setMessages([`Game started. ${activePlayer.name} is the active player.`]);
       setBlindPlayerId(null);
     });
 
     socket.on("wordShared", ({ word, blindPlayerId, activePlayerId }) => {
       setWord(word);
       setBlindPlayerId(blindPlayerId);
+
       if (socket.id === activePlayerId) {
         setMessages(["Word shared. Start voting when ready."]);
       } else if (socket.id === blindPlayerId) {
@@ -56,6 +64,7 @@ export default function GameRoom({ user, roomCode }) {
       setActivePlayer(nextActive);
       setVotes({});
       setVoteSubmitted(false);
+
       if (updatedPlayers.every(p => p.id === nextActive.id)) {
         setGameState("end");
         const maxScore = Math.max(...updatedPlayers.map(p => p.score));
@@ -90,7 +99,7 @@ export default function GameRoom({ user, roomCode }) {
     <div className="min-h-screen bg-gradient-to-r from-purple-200 to-pink-200 p-4">
       {showConfetti && <Confetti />}
       <h1 className="text-4xl font-bold text-center mb-4">Detective Club</h1>
-      <h2 className="text-center text-lg mb-4">Room Code: {roomCode}</h2>
+      <h2 className="text-center text-lg mb-4">Room Code: {typeof roomCode === "string" ? roomCode : ""}</h2>
 
       <div className="flex gap-4 mb-4">
         {/* Player List */}
@@ -133,6 +142,7 @@ export default function GameRoom({ user, roomCode }) {
           ))}
         </div>
 
+        {/* Start Game */}
         {gameState === "waiting" && players.length >= 4 && isHost && (
           <button
             onClick={startGame}
@@ -142,8 +152,9 @@ export default function GameRoom({ user, roomCode }) {
           </button>
         )}
 
+        {/* Enter Word (only active player, game started) */}
         {gameState === "active" && isActive && (
-          <div className="flex gap-2 items-center">
+          <div className="flex gap-2 items-center mt-2">
             <input
               type="text"
               placeholder="Enter word"
@@ -160,6 +171,7 @@ export default function GameRoom({ user, roomCode }) {
           </div>
         )}
 
+        {/* Start Voting (active player) */}
         {gameState === "active" && isActive && blindPlayerId && (
           <button
             onClick={startVoting}
@@ -169,8 +181,9 @@ export default function GameRoom({ user, roomCode }) {
           </button>
         )}
 
+        {/* Voting buttons (other players) */}
         {gameState === "voting" && !isActive && !voteSubmitted && (
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 mt-2">
             {players
               .filter(p => p.id !== activePlayer.id && p.id !== socket.id)
               .map(p => (
@@ -185,8 +198,14 @@ export default function GameRoom({ user, roomCode }) {
           </div>
         )}
 
-        {voteSubmitted && <p className="mt-2 text-green-700 font-bold">Vote submitted</p>}
+        {/* Vote submitted message */}
+        {voteSubmitted && (
+          <p className="mt-2 text-green-700 font-bold">
+            You voted for: {players.find(p => p.id === votes[socket.id])?.name || ""}
+          </p>
+        )}
 
+        {/* End Vote (active player) */}
         {gameState === "voting" && isActive && Object.keys(votes).length === players.length - 1 && (
           <button
             onClick={endVote}
