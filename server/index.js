@@ -20,7 +20,7 @@ app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "client", "build", "index.html"));
 });
 
-// Socket.io logic
+// Socket.io logic (create/join room, share word, voting, scoring)
 io.on("connection", (socket) => {
   console.log("User connected", socket.id);
 
