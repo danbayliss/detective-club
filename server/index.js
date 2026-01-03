@@ -10,13 +10,12 @@ const io = new Server(server);
 
 app.use(express.json());
 
-// Serve React frontend
+// Serve frontend build
 app.use(express.static(path.join(__dirname, "../client/build")));
 app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "../client/build", "index.html"));
+  res.sendFile(path.join(__dirname, "../client/build/index.html"));
 });
 
-// Rooms storage
 const rooms = {};
 
 io.on("connection", (socket) => {
@@ -28,6 +27,7 @@ io.on("connection", (socket) => {
       players: [{ id: socket.id, name, score: 0 }],
       activePlayerIndex: 0,
       blindPlayerId: null,
+      votes: {}
     };
     socket.join(roomCode);
     socket.emit("roomJoined", { roomCode, players: rooms[roomCode].players });
@@ -60,7 +60,11 @@ io.on("connection", (socket) => {
     const blindCandidates = room.players.filter((p) => p.id !== activePlayer.id);
     const blindPlayer = blindCandidates[Math.floor(Math.random() * blindCandidates.length)];
     room.blindPlayerId = blindPlayer.id;
-    io.to(roomCode).emit("wordShared", { word, blindPlayerId: blindPlayer.id, activePlayerId: activePlayer.id });
+    io.to(roomCode).emit("wordShared", {
+      word,
+      blindPlayerId: blindPlayer.id,
+      activePlayerId: activePlayer.id
+    });
   });
 
   socket.on("startVoting", ({ roomCode }) => {
@@ -73,7 +77,6 @@ io.on("connection", (socket) => {
   socket.on("submitVote", ({ roomCode, votedPlayerId }) => {
     const room = rooms[roomCode];
     if (!room) return;
-    room.votes = room.votes || {};
     room.votes[socket.id] = votedPlayerId;
     io.to(roomCode).emit("updateVotes", room.votes);
 
