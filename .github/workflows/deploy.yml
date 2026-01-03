@@ -1,29 +1,69 @@
-name: Build and Deploy
+name: Deploy Detective Club to Railway
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
 
 jobs:
-  build-and-deploy:
+  deploy:
+    name: Deploy Backend & Frontend to Railway
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      # Checkout repo
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
+      # Setup Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '20'
+          node-version: 20
 
-      - name: Install server dependencies
+      # Install Railway CLI
+      - name: Install Railway CLI
+        run: |
+          curl -sSL https://railway.app/install.sh | sh
+          export PATH=$HOME/.railway/bin:$PATH
+          railway --version
+
+      # Login to Railway using API key
+      - name: Railway Login
+        env:
+          RAILWAY_API_KEY: ${{ secrets.RAILWAY_API_KEY }}
+        run: railway login --apiKey $RAILWAY_API_KEY
+
+      # Install backend dependencies
+      - name: Install Backend Dependencies
+        working-directory: ./backend
         run: npm install
-        working-directory: ./server
 
-      - name: Install client dependencies
+      # Deploy backend
+      - name: Deploy Backend
+        working-directory: ./backend
+        id: backend
+        run: |
+          railway up --detach --project ${{ secrets.RAILWAY_PROJECT_ID_BACKEND }}
+          # Get the backend URL
+          BACKEND_URL=$(railway status --json | jq -r '.url')
+          echo "BACKEND_URL=$BACKEND_URL" >> $GITHUB_ENV
+
+      # Install frontend dependencies
+      - name: Install Frontend Dependencies
+        working-directory: ./frontend
         run: npm install
-        working-directory: ./client
 
-      - name: Build React frontend
+      # Set backend URL for frontend
+      - name: Set Frontend Environment Variable
+        run: echo "VITE_SERVER_URL=$BACKEND_URL" >> ./frontend/.env
+
+      # Build frontend
+      - name: Build Frontend
+        working-directory: ./frontend
         run: npm run build
-        working-directory: ./client
+
+      # Deploy frontend
+      - name: Deploy Frontend
+        working-directory: ./frontend
+        run: railway up --detach --project ${{ secrets.RAILWAY_PROJECT_ID_FRONTEND }}
