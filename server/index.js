@@ -2,17 +2,27 @@ import express from "express";
 import http from "http";
 import { Server } from "socket.io";
 import { nanoid } from "nanoid";
-import cors from "cors";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
-app.use(cors());
 const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: "*" } });
+const io = new Server(server);
 
 const rooms = {};
 
+// Serve React frontend
+app.use(express.static(path.join(__dirname, "client", "build")));
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "client", "build", "index.html"));
+});
+
+// --- Socket.io logic ---
 io.on("connection", (socket) => {
-  console.log("User connected:", socket.id);
+  console.log("User connected", socket.id);
 
   socket.on("createRoom", ({ name }) => {
     const roomCode = nanoid(6).toUpperCase();
@@ -75,8 +85,8 @@ io.on("connection", (socket) => {
   socket.on("endVote", ({ roomCode }) => {
     const room = rooms[roomCode];
     const blindId = room.blindPlayer.id;
-
     const blindVotes = Object.values(room.votes).filter(v => v === blindId).length;
+
     if (blindVotes <= 1) {
       const blindPlayer = room.players.find(p => p.id === blindId);
       if (blindPlayer) blindPlayer.score += 5;
@@ -91,7 +101,10 @@ io.on("connection", (socket) => {
 
     room.votes = {};
     room.activePlayerIndex = (room.activePlayerIndex + 1) % room.players.length;
-    io.to(roomCode).emit("voteEnded", { players: room.players, nextActive: room.players[room.activePlayerIndex] });
+    io.to(roomCode).emit("voteEnded", {
+      players: room.players,
+      nextActive: room.players[room.activePlayerIndex]
+    });
   });
 
   socket.on("disconnect", () => {
@@ -104,4 +117,4 @@ io.on("connection", (socket) => {
   });
 });
 
-server.listen(process.env.PORT || 3001, () => console.log("Server running"));
+server.listen(process.env.PORT || 3000, () => console.log("Server running"));
