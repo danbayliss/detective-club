@@ -4,13 +4,13 @@ import path from 'path';
 
 export default defineConfig({
   plugins: [react()],
+  root: '.',           // root folder is frontend
+  base: './',          // crucial: makes all assets relative
   build: {
     outDir: 'dist',
     emptyOutDir: true,
-    assetsDir: '',
     rollupOptions: {
       input: path.resolve(__dirname, 'index.html'),
     },
   },
-  base: './',
 });
