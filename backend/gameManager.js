@@ -1,11 +1,7 @@
 export class GameManager {
-  constructor() {
-    this.rooms = {};
-  }
+  constructor() { this.rooms = {}; }
 
-  generateRoomCode() {
-    return Math.floor(100 + Math.random() * 900).toString();
-  }
+  generateRoomCode() { return Math.floor(100 + Math.random() * 900).toString(); }
 
   createRoom(hostName, socketId) {
     const roomCode = this.generateRoomCode();
@@ -28,10 +24,7 @@ export class GameManager {
     return { success: true };
   }
 
-  getPlayers(roomCode) {
-    const room = this.rooms[roomCode];
-    return room ? room.players : [];
-  }
+  getPlayers(roomCode) { return this.rooms[roomCode]?.players || []; }
 
   startGame(roomCode) {
     const room = this.rooms[roomCode];
@@ -55,12 +48,11 @@ export class GameManager {
     room.players.forEach(p => p.voted = false);
   }
 
-  submitVote(roomCode, voterId, targetId) {
+  submitVote(roomCode, voterName, targetId) {
     const room = this.rooms[roomCode];
     if (!room) return;
-    const voter = room.players.find(p => p.id === voterId);
-    if (voter) voter.voted = true;
-    voter.vote = targetId;
+    const voter = room.players.find(p => p.name === voterName);
+    if (voter) { voter.voted = true; voter.vote = targetId; }
   }
 
   endVote(roomCode) {
@@ -68,36 +60,29 @@ export class GameManager {
     if (!room) return;
 
     const blind = room.players.find(p => p.id === room.blindPlayerId);
-    const voteCounts = room.players.reduce((acc, p) => {
-      if (p.vote === blind.id) acc++;
-      return acc;
-    }, 0);
+    const active = room.players[room.activePlayerIndex];
+    const votesForBlind = room.players.filter(p => p.vote === blind.id).length;
 
-    const activePlayer = room.players[room.activePlayerIndex];
-    if (voteCounts === 1 || voteCounts === 0) blind.score += 5;
-    if (activePlayer.vote === blind.id) activePlayer.score += 3;
+    if (active.vote === blind.id) active.score += 3;
+    if (votesForBlind <= 1) blind.score += 5;
 
-    // reset for next round
+    // Prepare next round
     room.phase = 'waiting';
     room.word = null;
     room.players.forEach(p => delete p.vote);
     room.activePlayerIndex = (room.activePlayerIndex + 1) % room.players.length;
-  }
 
-  getGameState(roomCode) {
-    return this.rooms[roomCode];
+    if (room.activePlayerIndex === 0) room.phase = 'end';
   }
 
   removePlayer(socketId) {
     for (const roomCode in this.rooms) {
       const room = this.rooms[roomCode];
-      const index = room.players.findIndex(p => p.id === socketId);
-      if (index !== -1) room.players.splice(index, 1);
-      if (room.players.length === 0) delete this.rooms[roomCode];
+      const idx = room.players.findIndex(p => p.id === socketId);
+      if (idx !== -1) room.players.splice(idx, 1);
+      if (!room.players.length) delete this.rooms[roomCode];
     }
   }
 
-  getAllRooms() {
-    return Object.keys(this.rooms);
-  }
+  getGameState(roomCode) { return this.rooms[roomCode]; }
 }
