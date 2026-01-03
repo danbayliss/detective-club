@@ -10,6 +10,7 @@ import { GameManager } from './gameManager.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Initialize Express
 const app = express();
 app.use(cors());
 
@@ -17,7 +18,7 @@ app.use(cors());
 const frontendPath = path.join(__dirname, '../frontend/dist');
 app.use(express.static(frontendPath));
 
-// Catch-all: serve index.html for React Router
+// Catch-all route for React Router SPA
 app.get('*', (req, res) => {
   res.sendFile(path.join(frontendPath, 'index.html'));
 });
@@ -25,17 +26,18 @@ app.get('*', (req, res) => {
 // Create HTTP server
 const server = http.createServer(app);
 
-// Socket.io
+// Initialize Socket.io
 const io = new Server(server, {
-  cors: { origin: '*' }
+  cors: { origin: '*' },
 });
 
 const gameManager = new GameManager();
 
-// --- Socket.io events (same as before) ---
+// Handle Socket.io connections
 io.on('connection', (socket) => {
   console.log('New connection:', socket.id);
 
+  // Create room
   socket.on('createRoom', ({ name }) => {
     const roomCode = gameManager.createRoom(name, socket.id);
     if (roomCode) {
@@ -45,6 +47,7 @@ io.on('connection', (socket) => {
     }
   });
 
+  // Join room
   socket.on('joinRoom', ({ name, roomCode }) => {
     const result = gameManager.joinRoom(name, roomCode, socket.id);
     if (result.error) io.to(socket.id).emit('errorMessage', result.error);
@@ -55,31 +58,37 @@ io.on('connection', (socket) => {
     }
   });
 
+  // Start game
   socket.on('startGame', ({ roomCode }) => {
     gameManager.startGame(roomCode);
     io.to(roomCode).emit('gameStarted', gameManager.getGameState(roomCode));
   });
 
+  // Share word
   socket.on('shareWord', ({ roomCode, word }) => {
     gameManager.shareWord(roomCode, word);
     io.to(roomCode).emit('wordShared', gameManager.getGameState(roomCode));
   });
 
+  // Start voting
   socket.on('startVoting', ({ roomCode }) => {
     gameManager.startVoting(roomCode);
     io.to(roomCode).emit('votingStarted', gameManager.getGameState(roomCode));
   });
 
+  // Submit vote
   socket.on('vote', ({ roomCode, voter, target }) => {
     gameManager.submitVote(roomCode, voter, target);
     io.to(roomCode).emit('voteUpdate', gameManager.getGameState(roomCode));
   });
 
+  // End vote
   socket.on('endVote', ({ roomCode }) => {
     gameManager.endVote(roomCode);
     io.to(roomCode).emit('voteEnded', gameManager.getGameState(roomCode));
   });
 
+  // Disconnect
   socket.on('disconnect', () => gameManager.removePlayer(socket.id));
 });
 
