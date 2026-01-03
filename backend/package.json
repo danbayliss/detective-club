@@ -1,7 +1,7 @@
 {
   "name": "detective-club-backend",
   "version": "1.0.0",
-  "type": "module",    // <<< this is required
+  "type": "module",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
