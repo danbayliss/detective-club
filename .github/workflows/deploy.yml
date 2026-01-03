@@ -22,8 +22,8 @@ jobs:
 
       - name: Install client dependencies
         run: npm install
-        working-directory: ./server/client
+        working-directory: ./client
 
       - name: Build React frontend
         run: npm run build
-        working-directory: ./server/client
+        working-directory: ./client
